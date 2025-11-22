@@ -23,7 +23,7 @@ const router = createRouter({
          {
       path: '/dashboardV2',
       name: 'dashboardV2',
-      component: () => import('@/views/DashboardV2.vue'),
+      component: () => import('@/views/daftarAlat/list.vue'),
     },
     {
       path: '/dashboardV3',

@@ -1,13 +1,13 @@
-// src/composables/useDaftarAlat.js
+// src/composables/usejadwalKalibrasi.js
 import { ref, nextTick, watch } from 'vue'
-import { daftarAlatApi } from '@/api/daftarAlat'
+import { jadwalKalibrasiApi } from '@/api/jadwalKalibrasi'
 
 // === Konfigurasi Cache ===
-const CACHE_KEY = 'daftar_alat_cache'
+const CACHE_KEY = 'jadwal_cache'
 const CACHE_DURATION = 5 * 60 * 1000 // 5 menit
 
-export function useDaftarAlat() {
-  const tools = ref([])
+export function usejadwalKalibrasi() {
+  const refJadwal = ref([])
   const loading = ref(true)
   let dataTableInstance = null
 
@@ -31,12 +31,13 @@ export function useDaftarAlat() {
         autoWidth: true,
         responsive: false,
         scrollX: true,
+        fixedHeader: false,
         // Hapus rowId karena data tidak punya field `id`
       })
     }
   }
 
-  watch(tools, initDataTable)
+  watch(refJadwal, initDataTable)
 
   // === Fetch dengan Cache + Background Revalidate ===
   const fetchList = async () => {
@@ -51,14 +52,14 @@ export function useDaftarAlat() {
         const { data, timestamp } = JSON.parse(cached)
         if (now - timestamp < CACHE_DURATION) {
           // Tampilkan langsung dari cache
-          tools.value = data
+          refJadwal.value = data
           loading.value = false
 
           // Update di background
-          daftarAlatApi
+          jadwalKalibrasiApi
             .fetchList()
             .then((freshData) => {
-              tools.value = freshData
+              refJadwal.value = freshData
               localStorage.setItem(
                 CACHE_KEY,
                 JSON.stringify({ data: freshData, timestamp: Date.now() })
@@ -77,22 +78,22 @@ export function useDaftarAlat() {
 
     // Jika tidak ada cache valid, ambil dari API
     try {
-      const freshData = await daftarAlatApi.fetchList()
-      tools.value = freshData
+      const freshData = await jadwalKalibrasiApi.fetchList()
+      refJadwal.value = freshData
       localStorage.setItem(
         CACHE_KEY,
         JSON.stringify({ data: freshData, timestamp: now })
       )
     } catch (error) {
       console.error('Gagal mengambil data alat:', error)
-      tools.value = []
+      refJadwal.value = []
     } finally {
       loading.value = false
     }
   }
 
   return {
-    tools,
+    refJadwal,
     loading,
     fetchList
   }

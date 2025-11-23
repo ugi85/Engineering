@@ -17,7 +17,7 @@ onMounted(() => {
   <div class="content-wrapper">
     <section class="content-header">
       <div class="container-fluid">
-        <h1 class="mb-0">Daftar Alat Kalibrasi</h1>
+        <h1 class="mb-0">Daftar Alat & Perawatan</h1>
       </div>
     </section>
 
@@ -37,59 +37,99 @@ onMounted(() => {
               <i class="fas fa-spinner fa-spin fa-2x text-primary"></i>
               <p class="mt-2">Memuat data alat kalibrasi...</p>
             </div>
+
             <div v-else>
-            <table class="table table-bordered table-hover daftar-alat-table">
-              <thead>
-                <tr>
-                  <th>No</th>
-                  <th>ID Alat</th>
-                  <th>Deskripsi</th>
-                  <th>Tipe/Model</th>
-                  <th>Serial No</th>
-                  <th>Year</th>
-                  <th>Product Critical</th>
-                  <th>Proses Critical</th>
-                  <th>Safety Critical</th>
-                  <th>Environment Critical</th>
-                  <th>Y/N PM</th>
-                  <th>6 Monthly PM</th>
-                  <th>Yearly PM</th>
-                  <th>In/Ex PM</th>
-                  <th>Y/N Kalibrasi</th>
-                  <th>Monthly Kalibrasi</th>
-                  <th>Lokasi</th>
-                  <th>Status PM</th>
-                  <th>Status Kalibrasi</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="tool in tools" :key="tool.no_id || tool.no">
-                  <td>{{ tool.no }}</td>
-                  <td>{{ tool.no_id || '—' }}</td>
-                  <td>{{ tool.description || '—' }}</td>
-                  <td>{{ tool.type_model || '—' }}</td>
-                  <td>{{ tool.sn || '—' }}</td>
-                  <td>{{ tool.year || '—' }}</td>
-                  <td>{{ tool.crit_product || '—' }}</td>
-                  <td>{{ tool.crit_process || '—' }}</td>
-                  <td>{{ tool.crit_safety || '—' }}</td>
-                  <td>{{ tool.crit_env || '—' }}</td>
-                  <td>{{ tool.crit_overall || '—' }}</td>
-                  <td>{{ tool.pm_6monthly || '—' }}</td>
-                  <td>{{ tool.pm_yearly || '—' }}</td>
-                  <td>{{ tool.pm_internal_external || '—' }}</td>
-                  <td>{{ tool.calib_yesno || '—' }}</td>
-                  <td>{{ tool.calib_schedule?.trim() || '—' }}</td>
-                  <td>{{ tool.location || '—' }}</td>
-                  <td>{{ tool.status_pm || '—' }}</td>
-                  <td>
-                    <span v-if="tool.status_calibration === 'done'" class="badge badge-success">Selesai</span>
-                    <span v-else-if="tool.status_calibration" class="badge badge-info">{{ tool.status_calibration }}</span>
-                    <span v-else class="badge badge-warning">Belum</span>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+              <table class="table table-bordered table-hover daftar-alat-table">
+                <thead>
+                  <!-- Baris Header Level 1 -->
+                  <tr>
+                    <th rowspan="2" class="align-middle">No</th>
+                    <th rowspan="2" class="align-middle">No. ID</th>
+                    <th rowspan="2" class="align-middle">Description</th>
+                    <th rowspan="2" class="align-middle">Type/Model</th>
+                    <th rowspan="2" class="align-middle">SN</th>
+                    <th rowspan="2" class="align-middle">Year</th>
+
+                    <!-- Criticality (Y/N) -->
+                    <th colspan="4" class="text-center">Criticality (Y/N)</th>
+
+                    <!-- PM -->
+                    <th colspan="4" class="text-center">PM</th>
+
+                    <!-- Calibration -->
+                    <th colspan="2" class="text-center">Calibration</th>
+
+                    <th rowspan="2" class="align-middle">Location</th>
+
+                    <!-- Status -->
+                    <th colspan="2" class="text-center">Status</th>
+                  </tr>
+
+                  <!-- Baris Header Level 2 -->
+                  <tr>
+                    <!-- Criticality Sub -->
+                    <th>Product</th>
+                    <th>Process</th>
+                    <th>Safety</th>
+                    <th>Environment</th>
+
+                    <!-- PM Sub -->
+                    <th>Y/N</th>
+                    <th>6 Monthly</th>
+                    <th>Yearly</th>
+                    <th>Internal/<br>External</th>
+                
+
+                    <!-- Calibration Sub -->
+                    <th>Y/N</th>
+                    <th>Schedule</th>
+                    <!-- <th>Y/N</th>
+                    <th>Month</th> -->
+
+                    <!-- Status Sub -->
+                    <th>PM</th>
+                    <th>Calibration</th>
+                  </tr>
+                </thead>
+
+                <tbody>
+                  <tr v-for="tool in tools" :key="tool.no_id || tool.no">
+                    <td>{{ tool.no }}</td>
+                    <td>{{ tool.no_id || '—' }}</td>
+                    <td>{{ tool.description || '—' }}</td>
+                    <td>{{ tool.type_model || '—' }}</td>
+                    <td>{{ tool.sn || '—' }}</td>
+                    <td>{{ tool.year || '—' }}</td>
+
+                    <!-- Criticality -->
+                    <td class="text-center">{{ tool.crit_product || '—' }}</td>
+                    <td class="text-center">{{ tool.crit_process || '—' }}</td>
+                    <td class="text-center">{{ tool.crit_safety || '—' }}</td>
+                    <td class="text-center">{{ tool.crit_env || '—' }}</td>
+
+                    <!-- PM -->
+                    <td>{{ tool.pm_overall || '—' }}</td>
+                    <td>{{ tool.pm_6monthly || '—' }}</td>
+                    <td>{{ tool.pm_yearly || '—' }}</td>
+                    <td>{{ tool.pm_internal_external|| '—' }}</td>
+
+                    <!-- Calibration -->
+                    <td>{{ tool.calib_yesno || '—' }}</td>
+                    <td>{{ tool.calib_schedule?.trim() || '—' }}</td>
+
+                    <!-- Location -->
+                    <td>{{ tool.location || '—' }}</td>
+
+                    <!-- Status -->
+                    <td>{{ tool.status_pm || '—' }}</td>
+                    <td>
+                      <span v-if="tool.status_calibration === 'done'" class="badge badge-success">Selesai</span>
+                      <span v-else-if="tool.status_calibration" class="badge badge-info">{{ tool.status_calibration }}</span>
+                      <span v-else class="badge badge-warning">Belum</span>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
           </div>
         </div>
@@ -99,10 +139,42 @@ onMounted(() => {
 </template>
 
 <style scoped>
-/* ✅ Ini yang membuat scroll horizontal muncul saat perlu */
+/* Header styling */
+.daftar-alat-table thead th {
+  vertical-align: middle;
+  font-weight: 600;
+  background-color: #f8f9fa;
+}
+
+.daftar-alat-table thead tr:first-child th {
+  padding: 0.75rem;
+}
+
+.daftar-alat-table thead tr:nth-child(2) th {
+  font-size: 0.85rem;
+  padding: 0.4rem 0.5rem;
+}
+
+/* Konten tabel */
 .daftar-alat-table th,
 .daftar-alat-table td {
   white-space: nowrap;
+  padding: 0.5rem;
+}
+
+/* Kolom centered */
+.daftar-alat-table .text-center {
+  text-align: center;
+}
+
+/* Lebar minimum untuk kolom penting (opsional) */
+.daftar-alat-table th:first-child,
+.daftar-alat-table td:first-child {
+  min-width: 50px;
+}
+
+.daftar-alat-table th:nth-child(2),
+.daftar-alat-table td:nth-child(2) {
+  min-width: 120px;
 }
 </style>
-

@@ -65,6 +65,18 @@
                   <p>Dashboard v3</p>
                 </RouterLink>
               </li>
+              <li class="nav-item">
+                <RouterLink to="/daftarAlat" class="nav-link">
+                  <i class="far fa-circle nav-icon"></i>
+                  <p>Daftar Alat</p>
+                </RouterLink>
+              </li>
+              <li class="nav-item">
+                <RouterLink to="/jadwalKalibrasi" class="nav-link">
+                  <i class="far fa-circle nav-icon"></i>
+                  <p>Jadwal Kalibrasi</p>
+                </RouterLink>
+              </li>
             </ul>
           </li>
           <li class="nav-item">

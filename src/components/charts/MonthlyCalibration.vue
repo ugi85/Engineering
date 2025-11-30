@@ -20,6 +20,10 @@ Chart.register(...registerables)
 const chartCanvas = ref(null)
 const loading = ref(true)
 
+// === Konfigurasi Cache ===
+const CACHE_KEY = 'monthly_chart_cache'
+const CACHE_DURATION = 5 * 60 * 1000 // 5 menit
+
 // Fungsi untuk mengambil data dari API
 const fetchMonthlyReports = async () => {
   try {
@@ -44,26 +48,137 @@ const fetchMonthlyReports = async () => {
   }
 }
 
+// const initChart = async () => {
+//   const data = await fetchMonthlyReports()
+//   loading.value = false // Hentikan loading
+
+//   if (!data) {
+//     console.error("Gagal mengambil data untuk chart.")
+//     return
+//   }
+
+//   if (!chartCanvas.value) {
+//     console.error("Canvas tidak ditemukan!")
+//     return
+//   }
+
+//   const ctx = chartCanvas.value.getContext('2d')
+
+//   // Daftar bulan
+//   const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
+//   const pmData = months.map(month => data.pm[month] || 0)
+//   const calibData = months.map(month => data.calib[month] || 0)
+
+//   new Chart(ctx, {
+//     type: 'bar',
+//     data: {
+//       labels: months,
+//       datasets: [
+//         {
+//           label: 'PM (6 Monthly + Yearly)',
+//           data: pmData,
+//           backgroundColor: 'rgba(54, 162, 235, 0.6)',
+//           borderColor: 'rgba(54, 162, 235, 1)',
+//           borderWidth: 1
+//         },
+//         {
+//           label: 'Kalibrasi',
+//           data: calibData,
+//           backgroundColor: 'rgba(255, 99, 132, 0.6)',
+//           borderColor: 'rgba(255, 99, 132, 1)',
+//           borderWidth: 1
+//         }
+//       ]
+//     },
+//     options: {
+//       responsive: true,
+//       maintainAspectRatio: false,
+//       scales: {
+//         y: {
+//           beginAtZero: true,
+//           title: {
+//             display: true,
+//             text: 'Jumlah'
+//           }
+//         },
+//         x: {
+//           title: {
+//             display: true,
+//             text: 'Bulan'
+//           }
+//         }
+//       },
+//       plugins: {
+//         legend: {
+//           position: 'top',
+//         },
+//         title: {
+//           display: true,
+//           text: 'Laporan Bulanan PM & Kalibrasi'
+//         }
+//       }
+//     }
+//   })
+// }
+
 const initChart = async () => {
-  const data = await fetchMonthlyReports()
-  loading.value = false // Hentikan loading
+  const now = Date.now()
+  let cachedData = null
 
-  if (!data) {
-    console.error("Gagal mengambil data untuk chart.")
-    return
+  // Coba baca dari cache
+  const cached = localStorage.getItem(CACHE_KEY)
+  if (cached) {
+    try {
+      const parsed = JSON.parse(cached)
+      if (parsed && now - parsed.timestamp < CACHE_DURATION) {
+        cachedData = parsed
+      }
+    } catch (e) {
+      console.warn('Cache chart corrupted, ignoring')
+    }
   }
 
-  if (!chartCanvas.value) {
-    console.error("Canvas tidak ditemukan!")
-    return
+  if (cachedData) {
+    // Tampilkan langsung dari cache
+    renderChart(cachedData.pm, cachedData.calib)
+    loading.value = false
+
+    // Update di background
+    fetchMonthlyReports().then(freshData => {
+      if (freshData) {
+        localStorage.setItem(
+          CACHE_KEY,
+          JSON.stringify({ ...freshData, timestamp: Date.now() })
+        )
+        // Opsional: refresh chart dengan data baru
+        // renderChart(freshData.pm, freshData.calib)
+      }
+    }).catch(console.error)
+  } else {
+    // Ambil dari API
+    const data = await fetchMonthlyReports()
+    loading.value = false
+
+    if (data) {
+      renderChart(data.pm, data.calib)
+      localStorage.setItem(
+        CACHE_KEY,
+        JSON.stringify({ ...data, timestamp: now })
+      )
+    } else {
+      console.error("Gagal mengambil data untuk chart.")
+    }
   }
+}
+
+const renderChart = (pmDataObj, calibDataObj) => {
+  if (!chartCanvas.value) return
 
   const ctx = chartCanvas.value.getContext('2d')
 
-  // Daftar bulan
   const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
-  const pmData = months.map(month => data.pm[month] || 0)
-  const calibData = months.map(month => data.calib[month] || 0)
+  const pmData = months.map(month => pmDataObj[month] || 0)
+  const calibData = months.map(month => calibDataObj[month] || 0)
 
   new Chart(ctx, {
     type: 'bar',
@@ -92,30 +207,21 @@ const initChart = async () => {
       scales: {
         y: {
           beginAtZero: true,
-          title: {
-            display: true,
-            text: 'Jumlah'
-          }
+          title: { display: true, text: 'Jumlah' }
         },
         x: {
-          title: {
-            display: true,
-            text: 'Bulan'
-          }
+          title: { display: true, text: 'Bulan' }
         }
       },
       plugins: {
-        legend: {
-          position: 'top',
-        },
-        title: {
-          display: true,
-          text: 'Laporan Bulanan PM & Kalibrasi'
-        }
+        legend: { position: 'top' },
+        title: { display: true, text: 'Laporan Bulanan PM & Kalibrasi' }
       }
     }
   })
 }
+
+
 
 onMounted(() => {
   initChart()

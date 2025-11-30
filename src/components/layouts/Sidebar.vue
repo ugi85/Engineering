@@ -77,6 +77,12 @@
                   <p>Jadwal Kalibrasi</p>
                 </RouterLink>
               </li>
+              <li class="nav-item">
+                <RouterLink to="/chartMonitoring" class="nav-link">
+                  <i class="far fa-circle nav-icon"></i>
+                  <p>ChartMonitoring</p>
+                </RouterLink>
+              </li>
             </ul>
           </li>
           <li class="nav-item">

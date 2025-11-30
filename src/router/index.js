@@ -40,6 +40,11 @@ const router = createRouter({
       name: 'jadwalKalibrasi',
       component: () => import('@/views/jadwalKalibrasi/list.vue'),
     },
+     {
+      path: '/chartMonitoring',
+      name: 'chartMonitoring',
+      component: () => import('@/views/ChartsMonitoring.vue'),
+    },
     
     {
       path: '/widgets',

@@ -1,5 +1,5 @@
 // src/api/daftarAlat.js
-import axios from 'axios'
+import api from '@/plugins/axios'
 import { useSettingsStore } from '@/stores/settings'
 
 // Utility untuk format POST agar tidak ada masalah spasi menjadi '+'
@@ -16,7 +16,7 @@ function toFormData(data) {
 export const daftarAlatApi = {
   async fetchList() {
     const settings = useSettingsStore()
-    const { data } = await axios.get(settings.api.daftarAlat, { params: { action: 'list' } })
+    const { data } = await api.get(settings.api.daftarAlat, { params: { action: 'list' } })
     return data.success ? data.data || [] : []
   },
 

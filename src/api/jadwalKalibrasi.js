@@ -1,5 +1,5 @@
 // src/api/jadwalKalibrasi.js
-import axios from 'axios'
+import api from '@/plugins/axios'
 import { useSettingsStore } from '@/stores/settings'
 
 // Utility untuk format POST agar tidak ada masalah spasi menjadi '+'
@@ -16,7 +16,7 @@ function toFormData(data) {
 export const jadwalKalibrasiApi = {
   async fetchList() {
     const settings = useSettingsStore()
-    const { data } = await axios.get(settings.api.jadwalKalibrasi, { params: { action: 'list' } })
+    const { data } = await api.get(settings.api.jadwalKalibrasi, { params: { action: 'list' } })
     return data.success ? data.data || [] : []
   },
 

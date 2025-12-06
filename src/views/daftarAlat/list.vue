@@ -2,10 +2,23 @@
 import { onMounted } from 'vue'
 import { useDaftarAlat } from '@/composables/useDaftarAlat'
 
-const { tools, loading, fetchList } = useDaftarAlat()
+const { tools, loading, fetchList, saveTool, deleteTool } = useDaftarAlat()
 
 const refresh = () => {
   fetchList()
+}
+
+// Fungsi Edit
+const editTool = (tool) => {
+  console.log('Edit tool:', tool)
+  // Implementasikan modal edit di sini
+}
+
+
+
+// Fungsi simpan (untuk modal edit/create)
+const handleSave = async (toolData) => {
+  await saveTool(toolData)
 }
 
 onMounted(() => {
@@ -24,18 +37,18 @@ onMounted(() => {
     <section class="content">
       <div class="container-fluid">
         <div class="card">
-          <div class="card-header">
+          <!-- <div class="card-header">
             <h3 class="card-title">Data Alat</h3>
             <div class="card-tools">
               <button class="btn btn-tool" @click="refresh" :disabled="loading">
                 <i class="fas fa-sync" :class="{ 'fa-spin': loading }"></i>
               </button>
             </div>
-          </div>
+          </div> -->
           <div class="card-body">
             <div v-if="loading" class="text-center py-4">
               <i class="fas fa-spinner fa-spin fa-2x text-primary"></i>
-              <p class="mt-2">Memuat data alat kalibrasi...</p>
+              <p class="mt-2">Memuat data...</p>
             </div>
 
             <div v-else>
@@ -63,6 +76,9 @@ onMounted(() => {
 
                     <!-- Status -->
                     <th colspan="2" class="text-center">Status</th>
+
+                     <!-- Kolom Aksi -->
+                    <th rowspan="2" class="align-middle text-center">Aksi</th>
                   </tr>
 
                   <!-- Baris Header Level 2 -->
@@ -83,8 +99,6 @@ onMounted(() => {
                     <!-- Calibration Sub -->
                     <th>Y/N</th>
                     <th>Schedule</th>
-                    <!-- <th>Y/N</th>
-                    <th>Month</th> -->
 
                     <!-- Status Sub -->
                     <th>PM</th>
@@ -93,7 +107,7 @@ onMounted(() => {
                 </thead>
 
                 <tbody>
-                  <tr v-for="tool in tools" :key="tool.no_id || tool.no">
+                  <tr v-for="tool in tools" :key="tool.no">
                     <td>{{ tool.no }}</td>
                     <td>{{ tool.no_id || '—' }}</td>
                     <td>{{ tool.description || '—' }}</td>
@@ -127,6 +141,17 @@ onMounted(() => {
                       <span v-else-if="tool.status_calibration" class="badge badge-info">{{ tool.status_calibration }}</span>
                       <span v-else class="badge badge-warning">Belum</span>
                     </td>
+                    <!-- Aksi -->
+                     <td>
+                    <button class="btn btn-warning btn-sm mr-1" @click="openEditModal(product)">
+                      <i class="fas fa-edit"></i>
+                    </button>
+                    <button class="btn btn-danger btn-sm" @click="deleteTool(tool.no)">
+                      <i class="fas fa-trash"></i>
+                    </button>
+                  </td>
+
+                   
                   </tr>
                 </tbody>
               </table>

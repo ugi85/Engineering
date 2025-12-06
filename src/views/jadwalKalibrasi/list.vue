@@ -24,14 +24,14 @@ onMounted(() => {
     <section class="content">
       <div class="container-fluid">
         <div class="card">
-          <div class="card-header">
+          <!-- <div class="card-header">
             <h3 class="card-title">Data Kalibrasi</h3>
             <div class="card-tools">
               <button class="btn btn-tool" @click="refresh" :disabled="loading">
                 <i class="fas fa-sync" :class="{ 'fa-spin': loading }"></i>
               </button>
             </div>
-          </div>
+          </div> -->
           <div class="card-body">
             <div v-if="loading" class="text-center py-4">
               <i class="fas fa-spinner fa-spin fa-2x text-primary"></i>

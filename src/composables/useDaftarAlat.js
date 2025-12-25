@@ -35,7 +35,11 @@ export function useDaftarAlat() {
         autoWidth: true,
         responsive: false,
         scrollX: true,
-        // Hapus rowId karena data tidak punya field `id`
+        lengthMenu: [
+        [10, 25, 50, 100, -1],    // nilai -1 = "All"
+        [10, 25, 50, 100, "All"]  // label yang ditampilkan
+        ],
+    
       })
     }
   }

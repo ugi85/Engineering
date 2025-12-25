@@ -1,25 +1,28 @@
-// src/composables/usejadwalKalibrasi.js
+// src/composables/useJadwalKalibrasi.js
 import { ref, nextTick, watch } from 'vue'
-import { jadwalKalibrasiApi } from '@/api/jadwalKalibrasi'
+import { jadwalKalibrasiApi } from '@/api/jadwalKalibrasiApi'
 
 // === Konfigurasi Cache ===
-const CACHE_KEY = 'jadwal_cache'
+const CACHE_KEY = 'jadwal_kalibrasi_cache'
 const CACHE_DURATION = 5 * 60 * 1000 // 5 menit
 
-export function usejadwalKalibrasi() {
+export function useJadwalKalibrasi() {
   const refJadwal = ref([])
   const loading = ref(true)
+  const isSaving = ref(false)
+  const isDeleting = ref(false)
   let dataTableInstance = null
 
   // === Inisialisasi DataTables ===
   const initDataTable = async () => {
     await nextTick()
     if (dataTableInstance) {
-      dataTableInstance.destroy()
+      dataTableInstance.clear()
+      dataTableInstance.destroy(true) // true = bersihkan wrapper
+      dataTableInstance = null
     }
 
-    // Sesuaikan dengan class di template Anda
-    const table = document.querySelector('.daftar-alat-table')
+    const table = document.querySelector('.jadwal-kalibrasi-table')
     if (table) {
       // @ts-ignore
       dataTableInstance = $(table).DataTable({
@@ -28,47 +31,38 @@ export function usejadwalKalibrasi() {
         searching: true,
         ordering: true,
         info: true, 
-        autoWidth: true,
+        autoWidth: false, // ✅ Ubah jadi false saat scrollX=true
         responsive: false,
         scrollX: true,
-        fixedHeader: false,
-        // Hapus rowId karena data tidak punya field `id`
+        lengthMenu: [
+          [10, 25, 50, 100, -1],    // nilai -1 = "All"
+          [10, 25, 50, 100, "All"]  // label yang ditampilkan
+        ]
       })
     }
   }
 
-  watch(refJadwal, initDataTable)
+  watch(
+    refJadwal,
+    () => {
+      initDataTable()
+    },
+    { deep: true }
+  )
 
   // === Fetch dengan Cache + Background Revalidate ===
-  const fetchList = async () => {
+  const fetchList = async (force = false) => {
     loading.value = true
 
-    // Coba baca dari cache
     const cached = localStorage.getItem(CACHE_KEY)
     const now = Date.now()
 
-    if (cached) {
+    if (!force && cached) {
       try {
         const { data, timestamp } = JSON.parse(cached)
         if (now - timestamp < CACHE_DURATION) {
-          // Tampilkan langsung dari cache
           refJadwal.value = data
           loading.value = false
-
-          // Update di background
-          jadwalKalibrasiApi
-            .fetchList()
-            .then((freshData) => {
-              refJadwal.value = freshData
-              localStorage.setItem(
-                CACHE_KEY,
-                JSON.stringify({ data: freshData, timestamp: Date.now() })
-              )
-            })
-            .catch((err) => {
-              console.warn('Background update gagal:', err)
-            })
-
           return
         }
       } catch (e) {
@@ -76,7 +70,6 @@ export function usejadwalKalibrasi() {
       }
     }
 
-    // Jika tidak ada cache valid, ambil dari API
     try {
       const freshData = await jadwalKalibrasiApi.fetchList()
       refJadwal.value = freshData
@@ -85,16 +78,104 @@ export function usejadwalKalibrasi() {
         JSON.stringify({ data: freshData, timestamp: now })
       )
     } catch (error) {
-      console.error('Gagal mengambil data alat:', error)
+      console.error('Gagal mengambil data jadwal:', error)
       refJadwal.value = []
     } finally {
       loading.value = false
     }
   }
 
+  // === CREATE / UPDATE: Simpan jadwal ===
+  const saveJadwal = async (jadwal) => {
+    isSaving.value = true
+    try {
+      const result = await jadwalKalibrasiApi.saveJadwal(jadwal)
+      
+      // ⛔ Buang cache lama
+      localStorage.removeItem(CACHE_KEY)
+
+      // ⛔ Paksa ambil data terbaru dari server
+      await fetchList(true)
+      
+      Swal.fire(
+        'Berhasil!',
+        `Jadwal berhasil ${jadwal.no ? 'diupdate' : 'ditambahkan'}`,
+        'success'
+      )
+      return result
+    } catch (error) {
+      console.error('Gagal simpan jadwal:', error)
+      Swal.fire('Error!', error.message || 'Gagal menyimpan data jadwal', 'error')
+    } finally {
+      isSaving.value = false
+    }
+  }
+
+  // === DELETE: Hapus jadwal ===
+  const deleteJadwal = async (no, description = '') => {
+    const confirm = await Swal.fire({
+      title: 'Hapus Jadwal?',
+      text: `Yakin hapus jadwal "${description || no}"? Data tidak bisa dikembalikan!`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#d33',
+      cancelButtonColor: '#3085d6',
+      confirmButtonText: 'Ya, Hapus!',
+      cancelButtonText: 'Batal'
+    })
+
+    if (!confirm.isConfirmed) return
+
+    isDeleting.value = true
+    try {
+      console.log('[DEBUG] Memulai hapus jadwal dengan no:', no)
+
+      const result = await jadwalKalibrasiApi.deleteJadwal(no)
+
+      console.log('[DEBUG] Respons API delete:', result)
+
+      if (!result || !result.success) {
+        throw new Error(result?.message || 'Respons tidak valid dari server')
+      }
+
+      // ⚡ Optimistic update: langsung hilangkan di UI
+      refJadwal.value = refJadwal.value.filter((j) => String(j.no) !== String(no))
+
+      // Buang cache lama
+      localStorage.removeItem(CACHE_KEY)
+
+      // Ambil ulang dari server
+      await fetchList(true)
+      
+      Swal.fire('Berhasil!', 'Jadwal berhasil dihapus', 'success')
+      return result
+
+    } catch (error) {
+      console.error('[ERROR] Gagal menghapus jadwal:', {
+        no,
+        error: error.message,
+        stack: error.stack,
+        originalError: error
+      })
+
+      Swal.fire(
+        'Gagal Menghapus!',
+        error.message || 'Terjadi kesalahan saat menghapus data',
+        'error'
+      )
+    } finally {
+      isDeleting.value = false
+      console.log('[DEBUG] Proses hapus selesai')
+    }
+  }
+
   return {
     refJadwal,
     loading,
-    fetchList
+    fetchList,
+    saveJadwal,
+    deleteJadwal,
+    isSaving,
+    isDeleting
   }
 }

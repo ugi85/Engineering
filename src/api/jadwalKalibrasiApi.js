@@ -1,4 +1,4 @@
-// src/api/jadwalKalibrasi.js
+// src/api/jadwalKalibrasiApi.js
 import api from '@/plugins/axios'
 import { useSettingsStore } from '@/stores/settings'
 
@@ -21,63 +21,52 @@ export const jadwalKalibrasiApi = {
   },
 
 
-  /**
-   * Ambil detail alat berdasarkan ID
-   */
-  async getToolById(id) {
+async getJadwalByNo(no) {
     const settings = useSettingsStore()
-    try {
-      const { data } = await api.get(settings.api.jadwalKalibrasi, {
-        params: { action: 'getToolById', id }
-      })
-      return data.success ? data.tool : null
-    } catch (error) {
-      console.error('Error fetching tool by ID:', error)
-      return null
-    }
+    const { data } = await api.get(settings.api.jadwalKalibrasi, {
+      params: { action: 'get', no }
+    })
+    return data.success ? data.item : null
   },
 
   /**
    * Simpan alat (create atau update)
    */
-  async saveTool(tool) {
+  async saveJadwal(jadwal) {
     const settings = useSettingsStore()
-    const action = tool.id ? 'updateTool' : 'createTool'
+    const action = jadwal.no ? 'update' : 'create'
     
     const payload = toFormData({
       action,
-      id: tool.id,
-      nama_alat: tool.nama_alat,
-      merek: tool.merek,
-      tipe: tool.tipe,
-      serial_number: tool.serial_number,
-      tanggal_kalibrasi: tool.tanggal_kalibrasi,
-      status: tool.status,
-      // tambahkan field lain sesuai kebutuhan
+      no: jadwal.no,
+      no_id: jadwal.no_id,
+      description: jadwal.description,
+      cal_id: jadwal.cal_id,
+      parameter: jadwal.parameter,
+      process_range: jadwal.process_range,
+      reject_error: jadwal.reject_error,
+      interval: jadwal.interval,
+      due_date: jadwal.due_date,
+      remark: jadwal.remark,
+      criticality: jadwal.criticality
     })
 
     const { data } = await api.post(settings.api.jadwalKalibrasi, payload)
     if (!data.success) {
-      throw new Error(data.message || 'Gagal menyimpan data alat')
+      throw new Error(data.message || 'Gagal menyimpan data jadwal')
     }
-
-    // Jika respons tidak mengembalikan `tool`, buat dari payload
-    if (!data.tool) {
-      data.tool = { id: data.id || tool.id, ...tool }
+    if (!data.item) {
+      data.item = { no: data.no || jadwal.no, ...jadwal }
     }
-
     return data
   },
 
-  /**
-   * Hapus alat berdasarkan ID
-   */
-  async deleteTool(id) {
+async deleteJadwal(no) {
     const settings = useSettingsStore()
-    const payload = toFormData({ action: 'deleteTool', id })
+    const payload = toFormData({ action: 'delete', no })
     const { data } = await api.post(settings.api.jadwalKalibrasi, payload)
     if (!data.success) {
-      throw new Error(data.message || 'Gagal menghapus data alat')
+      throw new Error(data.message || 'Gagal menghapus data jadwal')
     }
     return data
   }

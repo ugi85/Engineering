@@ -1,24 +1,105 @@
 <script setup>
-import { onMounted } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useDaftarAlat } from '@/composables/useDaftarAlat'
 
-const { tools, loading, fetchList, saveTool, deleteTool } = useDaftarAlat()
+const { tools, loading, fetchList, saveTool, isSaving, deleteTool } = useDaftarAlat()
 
-const refresh = () => {
-  fetchList()
+// State untuk modal
+const editingTool = ref({
+  no: '',
+  no_id: '',
+  description: '',
+  type_model: '',
+  sn: '',
+  year: '',
+  crit_product: '',
+  crit_process: '',
+  crit_safety: '',
+  crit_env: '',
+  pm_overall: '',
+  pm_6monthly: '',
+  pm_yearly: '',
+  pm_internal_external: '',
+  calib_yesno: '',
+  calib_schedule: '',
+  location: '',
+  status_pm: '',
+  status_calibration: ''
+})
+
+// Refresh data
+const refresh = () => fetchList()
+
+// Buka modal TAMBAH
+const openCreateModal = () => {
+  editingTool.value = {
+    no: '',
+    no_id: '',
+    description: '',
+    type_model: '',
+    sn: '',
+    year: '',
+    crit_product: '',
+    crit_process: '',
+    crit_safety: '',
+    crit_env: '',
+    pm_overall: '',
+    pm_6monthly: '',
+    pm_yearly: '',
+    pm_internal_external: '',
+    calib_yesno: '',
+    calib_schedule: '',
+    location: '',
+    status_pm: '',
+    status_calibration: ''
+  }
+  $('#editToolModalLabel').text('Tambah Alat Baru')
+  $('#editToolModal').modal('show')
 }
 
-// Fungsi Edit
-const editTool = (tool) => {
-  console.log('Edit tool:', tool)
-  // Implementasikan modal edit di sini
+// Buka modal EDIT
+const openEditModal = (tool) => {
+  editingTool.value = {
+    no: tool.no || '',
+    no_id: tool.no_id || '',
+    description: tool.description || '',
+    type_model: tool.type_model || '',
+    sn: tool.sn || '',
+    year: tool.year || '',
+    crit_product: tool.crit_product || '',
+    crit_process: tool.crit_process || '',
+    crit_safety: tool.crit_safety || '',
+    crit_env: tool.crit_env || '',
+    pm_overall: tool.pm_overall || '',
+    pm_6monthly: tool.pm_6monthly || '',
+    pm_yearly: tool.pm_yearly || '',
+    pm_internal_external: tool.pm_internal_external || '',
+    calib_yesno: tool.calib_yesno || '',
+    calib_schedule: tool.calib_schedule || '',
+    location: tool.location || '',
+    status_pm: tool.status_pm || '',
+    status_calibration: tool.status_calibration || ''
+  }
+  $('#editToolModalLabel').text('Edit Alat Kalibrasi')
+  $('#editToolModal').modal('show')
 }
 
+// Simpan (Create/Update)
+const saveEditingTool = async () => {
+  isSaving.value = true
+  try {
+    await saveTool(editingTool.value)
+    $('#editToolModal').modal('hide')
+  } catch (error) {
+    console.error('Gagal menyimpan:', error)
+  } finally {
+    isSaving.value = false
+  }
+}
 
-
-// Fungsi simpan (untuk modal edit/create)
-const handleSave = async (toolData) => {
-  await saveTool(toolData)
+// Hapus
+const handleDelete = (no) => {
+  deleteTool(no)
 }
 
 onMounted(() => {
@@ -28,23 +109,19 @@ onMounted(() => {
 
 <template>
   <div class="content-wrapper">
+    <!-- Header dengan Tombol Tambah -->
     <section class="content-header">
-      <div class="container-fluid">
+      <div class="container-fluid d-flex justify-content-between align-items-center">
         <h1 class="mb-0">Daftar Alat & Perawatan</h1>
+        <button class="btn btn-primary" @click="openCreateModal">
+          <i class="fas fa-plus mr-1"></i>Tambah Alat
+        </button>
       </div>
     </section>
 
     <section class="content">
       <div class="container-fluid">
         <div class="card">
-          <!-- <div class="card-header">
-            <h3 class="card-title">Data Alat</h3>
-            <div class="card-tools">
-              <button class="btn btn-tool" @click="refresh" :disabled="loading">
-                <i class="fas fa-sync" :class="{ 'fa-spin': loading }"></i>
-              </button>
-            </div>
-          </div> -->
           <div class="card-body">
             <div v-if="loading" class="text-center py-4">
               <i class="fas fa-spinner fa-spin fa-2x text-primary"></i>
@@ -54,7 +131,6 @@ onMounted(() => {
             <div v-else>
               <table class="table table-bordered table-hover daftar-alat-table">
                 <thead>
-                  <!-- Baris Header Level 1 -->
                   <tr>
                     <th rowspan="2" class="align-middle">No</th>
                     <th rowspan="2" class="align-middle">No. ID</th>
@@ -62,50 +138,28 @@ onMounted(() => {
                     <th rowspan="2" class="align-middle">Type/Model</th>
                     <th rowspan="2" class="align-middle">SN</th>
                     <th rowspan="2" class="align-middle">Year</th>
-
-                    <!-- Criticality (Y/N) -->
                     <th colspan="4" class="text-center">Criticality (Y/N)</th>
-
-                    <!-- PM -->
                     <th colspan="4" class="text-center">PM</th>
-
-                    <!-- Calibration -->
                     <th colspan="2" class="text-center">Calibration</th>
-
                     <th rowspan="2" class="align-middle">Location</th>
-
-                    <!-- Status -->
                     <th colspan="2" class="text-center">Status</th>
-
-                     <!-- Kolom Aksi -->
                     <th rowspan="2" class="align-middle text-center">Aksi</th>
                   </tr>
-
-                  <!-- Baris Header Level 2 -->
                   <tr>
-                    <!-- Criticality Sub -->
                     <th>Product</th>
                     <th>Process</th>
                     <th>Safety</th>
                     <th>Environment</th>
-
-                    <!-- PM Sub -->
                     <th>Y/N</th>
                     <th>6 Monthly</th>
                     <th>Yearly</th>
                     <th>Internal/<br>External</th>
-                
-
-                    <!-- Calibration Sub -->
                     <th>Y/N</th>
                     <th>Schedule</th>
-
-                    <!-- Status Sub -->
                     <th>PM</th>
                     <th>Calibration</th>
                   </tr>
                 </thead>
-
                 <tbody>
                   <tr v-for="tool in tools" :key="tool.no">
                     <td>{{ tool.no }}</td>
@@ -114,44 +168,33 @@ onMounted(() => {
                     <td>{{ tool.type_model || '—' }}</td>
                     <td>{{ tool.sn || '—' }}</td>
                     <td>{{ tool.year || '—' }}</td>
-
-                    <!-- Criticality -->
                     <td class="text-center">{{ tool.crit_product || '—' }}</td>
                     <td class="text-center">{{ tool.crit_process || '—' }}</td>
                     <td class="text-center">{{ tool.crit_safety || '—' }}</td>
                     <td class="text-center">{{ tool.crit_env || '—' }}</td>
-
-                    <!-- PM -->
                     <td>{{ tool.pm_overall || '—' }}</td>
                     <td>{{ tool.pm_6monthly || '—' }}</td>
                     <td>{{ tool.pm_yearly || '—' }}</td>
-                    <td>{{ tool.pm_internal_external|| '—' }}</td>
-
-                    <!-- Calibration -->
+                    <td>{{ tool.pm_internal_external || '—' }}</td>
                     <td>{{ tool.calib_yesno || '—' }}</td>
                     <td>{{ tool.calib_schedule?.trim() || '—' }}</td>
-
-                    <!-- Location -->
                     <td>{{ tool.location || '—' }}</td>
-
-                    <!-- Status -->
-                    <td>{{ tool.status_pm || '—' }}</td>
                     <td>
-                      <span v-if="tool.status_calibration === 'done'" class="badge badge-success">Selesai</span>
-                      <span v-else-if="tool.status_calibration" class="badge badge-info">{{ tool.status_calibration }}</span>
-                      <span v-else class="badge badge-warning">Belum</span>
+                      <span v-if="tool.status_pm === 'Selesai'" class="badge badge-success">Selesai</span>
+                      <span v-else-if="tool.status_pm" class="badge badge-warning">{{ tool.status_pm }}</span>
                     </td>
-                    <!-- Aksi -->
-                     <td>
-                    <button class="btn btn-warning btn-sm mr-1" @click="openEditModal(product)">
-                      <i class="fas fa-edit"></i>
-                    </button>
-                    <button class="btn btn-danger btn-sm" @click="deleteTool(tool.no)">
-                      <i class="fas fa-trash"></i>
-                    </button>
-                  </td>
-
-                   
+                    <td>
+                      <span v-if="tool.status_calibration === 'Selesai'" class="badge badge-success">Selesai</span>
+                      <span v-else-if="tool.status_calibration" class="badge badge-warning">{{ tool.status_calibration }}</span>
+                    </td>
+                    <td class="text-center">
+                      <button class="btn btn-warning btn-sm mr-1" @click="openEditModal(tool)">
+                        <i class="fas fa-edit"></i>
+                      </button>
+                      <button class="btn btn-danger btn-sm" @click="handleDelete(tool.no)">
+                        <i class="fas fa-trash"></i>
+                      </button>
+                    </td>
                   </tr>
                 </tbody>
               </table>
@@ -160,6 +203,134 @@ onMounted(() => {
         </div>
       </div>
     </section>
+
+    <!-- Modal Create/Edit -->
+    <div class="modal fade" id="editToolModal" tabindex="-1">
+      <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="editToolModalLabel">Edit Alat Kalibrasi</h5>
+            <button type="button" class="close" data-dismiss="modal">&times;</button>
+          </div>
+          <div class="modal-body">
+            <div class="row">
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label>No.</label>
+                  <input v-model="editingTool.no" type="text" class="form-control" readonly />
+                </div>
+                <div class="form-group">
+                  <label>No. ID</label>
+                  <input v-model="editingTool.no_id" type="text" class="form-control" />
+                </div>
+                <div class="form-group">
+                  <label>Description</label>
+                  <input v-model="editingTool.description" type="text" class="form-control" />
+                </div>
+                <div class="form-group">
+                  <label>Type/Model</label>
+                  <input v-model="editingTool.type_model" type="text" class="form-control" />
+                </div>
+                <div class="form-group">
+                  <label>SN</label>
+                  <input v-model="editingTool.sn" type="text" class="form-control" />
+                </div>
+                <div class="form-group">
+                  <label>Year</label>
+                  <input v-model="editingTool.year" type="text" class="form-control" />
+                </div>
+                <div class="form-group">
+                  <label>Location</label>
+                  <input v-model="editingTool.location" type="text" class="form-control" />
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label>Criticality - Product (Y/N)</label>
+                  <input v-model="editingTool.crit_product" type="text" class="form-control" maxlength="1" />
+                </div>
+                <div class="form-group">
+                  <label>Criticality - Process (Y/N)</label>
+                  <input v-model="editingTool.crit_process" type="text" class="form-control" maxlength="1" />
+                </div>
+                <div class="form-group">
+                  <label>Criticality - Safety (Y/N)</label>
+                  <input v-model="editingTool.crit_safety" type="text" class="form-control" maxlength="1" />
+                </div>
+                <div class="form-group">
+                  <label>Criticality - Environment (Y/N)</label>
+                  <input v-model="editingTool.crit_env" type="text" class="form-control" maxlength="1" />
+                </div>
+                <div class="form-group">
+                  <label>PM Overall (Y/N)</label>
+                  <input v-model="editingTool.pm_overall" type="text" class="form-control" maxlength="1" />
+                </div>
+                <div class="form-group">
+                  <label>PM 6 Monthly</label>
+                  <input v-model="editingTool.pm_6monthly" type="text" class="form-control" />
+                </div>
+                <div class="form-group">
+                  <label>PM Yearly</label>
+                  <input v-model="editingTool.pm_yearly" type="text" class="form-control" />
+                </div>
+                <div class="form-group">
+                  <label>PM Internal/External</label>
+                  <input v-model="editingTool.pm_internal_external" type="text" class="form-control" />
+                </div>
+                <div class="form-group">
+                  <label>Calibration (Y/N)</label>
+                  <input v-model="editingTool.calib_yesno" type="text" class="form-control" maxlength="1" />
+                </div>
+                <div class="form-group">
+                  <label>Calibration Schedule</label>
+                  <input v-model="editingTool.calib_schedule" type="text" class="form-control" />
+                </div>
+                <div class="form-group">
+                  <label>Status PM</label>
+                  <select v-model="editingTool.status_pm" class="form-control">
+                    <option value="">-- Pilih Status --</option>
+                    <option value="Selesai">Selesai</option>
+                    <option value="Belum">Belum</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label>Status Calibration</label>
+                  <select v-model="editingTool.status_calibration" class="form-control">
+                    <option value="">-- Pilih Status --</option>
+                    <option value="Selesai">Selesai</option>
+                    <option value="Belum">Belum</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button 
+              type="button" 
+              class="btn btn-secondary" 
+              data-dismiss="modal"
+              :disabled="isSaving"
+            >
+              Batal
+            </button>
+            <button 
+              type="button" 
+              class="btn btn-primary" 
+              @click="saveEditingTool"
+              :disabled="isSaving"
+            >
+              <span v-if="isSaving">
+                <span class="spinner-border spinner-border-sm mr-1"></span>
+                Menyimpan...
+              </span>
+              <span v-else>
+                {{ editingTool.no ? 'Simpan Perubahan' : 'Tambah Alat' }}
+              </span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 

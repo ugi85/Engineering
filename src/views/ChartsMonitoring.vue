@@ -34,6 +34,19 @@ onMounted(() => {
     <div class="content">
       <div class="container-fluid">
         <div class="row">
+          <div class="col-12 px-0"> <!-- ✅ Full width + hapus padding horizontal -->
+        <div class="card">
+          <div class="card-header border-0">
+            <div class="d-flex justify-content-between">
+              <h3 class="card-title">Monitoring Monthly</h3>
+              <a href="javascript:void(0);">View Report</a>
+            </div>
+          </div>
+          <div class="card-body" style="min-height: 100px;"> <!-- ✅ Tinggi minimal -->
+            <MonthlyCalibration />
+          </div>
+        </div>
+      </div>
           <div class="col-lg-6">
            <div class="card">
               <div class="card-header border-0">

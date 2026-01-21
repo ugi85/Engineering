@@ -142,7 +142,7 @@ onMounted(() => {
                     <th colspan="4" class="text-center">PM</th>
                     <th colspan="2" class="text-center">Calibration</th>
                     <th rowspan="2" class="align-middle">Location</th>
-                    <th colspan="2" class="text-center">Status</th>
+                    <!-- <th colspan="2" class="text-center">Status</th> -->
                     <th rowspan="2" class="align-middle text-center">Aksi</th>
                   </tr>
                   <tr>
@@ -156,8 +156,8 @@ onMounted(() => {
                     <th>Internal/<br>External</th>
                     <th>Y/N</th>
                     <th>Schedule</th>
-                    <th>PM</th>
-                    <th>Calibration</th>
+                    <!-- <th>PM</th>
+                    <th>Calibration</th> -->
                   </tr>
                 </thead>
                 <tbody>
@@ -179,14 +179,14 @@ onMounted(() => {
                     <td>{{ tool.calib_yesno || '—' }}</td>
                     <td>{{ tool.calib_schedule?.trim() || '—' }}</td>
                     <td>{{ tool.location || '—' }}</td>
-                    <td>
+                    <!-- <td>
                       <span v-if="tool.status_pm === 'Selesai'" class="badge badge-success">Selesai</span>
                       <span v-else-if="tool.status_pm" class="badge badge-warning">{{ tool.status_pm }}</span>
-                    </td>
-                    <td>
+                    </td> -->
+                    <!-- <td>
                       <span v-if="tool.status_calibration === 'Selesai'" class="badge badge-success">Selesai</span>
                       <span v-else-if="tool.status_calibration" class="badge badge-warning">{{ tool.status_calibration }}</span>
-                    </td>
+                    </td> -->
                     <td class="text-center">
                       <button class="btn btn-warning btn-sm mr-1" @click="openEditModal(tool)">
                         <i class="fas fa-edit"></i>
@@ -215,7 +215,7 @@ onMounted(() => {
           <div class="modal-body">
             <div class="row">
               <div class="col-md-6">
-                <div class="form-group">
+                <div v-if="editingTool.no" class="form-group">
                   <label>No.</label>
                   <input v-model="editingTool.no" type="text" class="form-control" readonly />
                 </div>
@@ -285,7 +285,7 @@ onMounted(() => {
                   <label>Calibration Schedule</label>
                   <input v-model="editingTool.calib_schedule" type="text" class="form-control" />
                 </div>
-                <div class="form-group">
+                <!-- <div class="form-group">
                   <label>Status PM</label>
                   <select v-model="editingTool.status_pm" class="form-control">
                     <option value="">-- Pilih Status --</option>
@@ -300,7 +300,7 @@ onMounted(() => {
                     <option value="Selesai">Selesai</option>
                     <option value="Belum">Belum</option>
                   </select>
-                </div>
+                </div> -->
               </div>
             </div>
           </div>

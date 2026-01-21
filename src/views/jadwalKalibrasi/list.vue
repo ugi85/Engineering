@@ -177,7 +177,7 @@ onMounted(() => {
             <button type="button" class="close" data-dismiss="modal">&times;</button>
           </div>
           <div class="modal-body">
-            <div class="form-group">
+            <div v-if="editingJadwal.no" class="form-group">
               <label>No.</label>
               <input v-model="editingJadwal.no" type="text" class="form-control" readonly />
             </div>

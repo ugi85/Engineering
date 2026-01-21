@@ -20,16 +20,32 @@ const router = createRouter({
           name: 'dashboard',
           component: Dashboard,
         },
-         {
+    {
       path: '/dashboardV2',
       name: 'dashboardV2',
-      component: () => import('@/views/DashboardV2.vue'),
+      component: () => import('@/views/dashboardV2.vue'),
     },
     {
       path: '/dashboardV3',
       name: 'dashboardV3',
-      component: () => import('@/views/DashboardV3.vue'),
+      component: () => import('@/views/dashboardV3.vue'),
     },
+     {
+      path: '/daftarAlat',
+      name: 'daftarAlat',
+      component: () => import('@/views/daftarAlat/list.vue'),
+    },
+       {
+      path: '/jadwalKalibrasi',
+      name: 'jadwalKalibrasi',
+      component: () => import('@/views/jadwalKalibrasi/list.vue'),
+    },
+     {
+      path: '/chartMonitoring',
+      name: 'chartMonitoring',
+      component: () => import('@/views/ChartsMonitoring.vue'),
+    },
+    
     {
       path: '/widgets',
       name: 'widgets',

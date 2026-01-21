@@ -4,7 +4,7 @@
     <!-- <a href="/" class="brand-link"> -->
       <RouterLink to="/" class="brand-link">
       <img src="/img/AdminLTELogo.png" alt="AdminLTE Logo" class="brand-image img-circle elevation-3" style="opacity: .8">
-      <span class="brand-text font-weight-light">AdminLTE 3</span>
+      <span class="brand-text font-weight-light">Eng_Monitor</span>
     <!-- </a> -->
     </RouterLink>
 
@@ -21,7 +21,7 @@
       </div>
 
       <!-- SidebarSearch Form -->
-      <div class="form-inline">
+      <!-- <div class="form-inline">
         <div class="input-group" data-widget="sidebar-search">
           <input class="form-control form-control-sidebar" type="search" placeholder="Search" aria-label="Search">
           <div class="input-group-append">
@@ -30,7 +30,7 @@
             </button>
           </div>
         </div>
-      </div>
+      </div> -->
 
       <!-- Sidebar Menu -->
       <nav class="mt-2">
@@ -65,9 +65,27 @@
                   <p>Dashboard v3</p>
                 </RouterLink>
               </li>
+              <li class="nav-item">
+                <RouterLink to="/daftarAlat" class="nav-link">
+                  <i class="far fa-circle nav-icon"></i>
+                  <p>Daftar Alat</p>
+                </RouterLink>
+              </li>
+              <li class="nav-item">
+                <RouterLink to="/jadwalKalibrasi" class="nav-link">
+                  <i class="far fa-circle nav-icon"></i>
+                  <p>Jadwal Kalibrasi</p>
+                </RouterLink>
+              </li>
+              <li class="nav-item">
+                <RouterLink to="/chartMonitoring" class="nav-link">
+                  <i class="far fa-circle nav-icon"></i>
+                  <p>ChartMonitoring</p>
+                </RouterLink>
+              </li>
             </ul>
           </li>
-          <li class="nav-item">
+          <!-- <li class="nav-item">
             <RouterLink to="/widgets" class="nav-link">
               <i class="nav-icon fas fa-th"></i>
               <p>
@@ -668,7 +686,7 @@
               <i class="nav-icon far fa-circle text-info"></i>
               <p>Informational</p>
             </a>
-          </li>
+          </li> -->
         </ul>
       </nav>
       <!-- /.sidebar-menu -->

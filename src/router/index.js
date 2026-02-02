@@ -40,6 +40,11 @@ const router = createRouter({
       name: 'jadwalKalibrasi',
       component: () => import('@/views/jadwalKalibrasi/list.vue'),
     },
+       {
+      path: '/logCal',
+      name: 'logCal',
+      component: () => import('@/views/logAktifitas/kalibrasi.vue'),
+    },
      {
       path: '/chartMonitoring',
       name: 'chartMonitoring',

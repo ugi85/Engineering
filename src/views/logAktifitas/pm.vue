@@ -12,8 +12,8 @@ const {
   fetchData
 } = useLogAktivitas()
 
-// ✅ SET FILTER TYPE KE KALIBRASI SAJA
-filterType.value = 'kalibrasi'
+// ✅ SET FILTER TYPE KE PM SAJA
+filterType.value = 'pm'
 
 // State untuk tracking
 const dataLoaded = ref(false)
@@ -38,7 +38,7 @@ const months = [
 // Tahun untuk dropdown
 const years = ['2025', '2026', '2027', '2028', '2029', '2030']
 
-// ✅ FUNGSI FORMAT TANGGAL SAMA DENGAN LOG PM
+// ✅ FUNGSI FORMAT TANGGAL SAMA DENGAN LOG KALIBRASI
 function formatDateDisplay(dateString) {
   if (!dateString) return ''
   
@@ -83,7 +83,7 @@ const handleSearch = async () => {
       Swal.fire({
         icon: 'info',
         title: 'Informasi',
-        text: `Tidak ada data kalibrasi untuk ${selectedMonth.value} ${selectedYear.value}`,
+        text: `Tidak ada data PM untuk ${selectedMonth.value} ${selectedYear.value}`,
         confirmButtonText: 'OK'
       })
     }
@@ -94,7 +94,7 @@ const handleSearch = async () => {
     Swal.fire({
       icon: 'error',
       title: 'Gagal!',
-      text: error.message || 'Gagal memuat data kalibrasi',
+      text: error.message || 'Gagal memuat data PM',
       confirmButtonText: 'OK'
     })
   } finally {
@@ -124,7 +124,7 @@ const saveToLogAktivitas = async (row) => {
     await logAktivitasApi.createLog({
       no_id: row['No.ID'],
       cal_id: row['Calibration Id.'],
-      jenis: 'Kalibrasi',
+      jenis: 'PM',
       tanggal: row.execute_date,
       petugas: row.pic,
       keterangan: row.ket
@@ -136,7 +136,7 @@ const saveToLogAktivitas = async (row) => {
     Swal.fire({
       icon: 'success',
       title: 'Berhasil!',
-      text: 'Data kalibrasi berhasil disimpan',
+      text: 'Data PM berhasil disimpan',
       timer: 1200,
       showConfirmButton: false
     })
@@ -148,7 +148,7 @@ const saveToLogAktivitas = async (row) => {
     Swal.fire({
       icon: 'error',
       title: 'Gagal!',
-      text: error.message || 'Gagal menyimpan data kalibrasi',
+      text: error.message || 'Gagal menyimpan data PM',
       confirmButtonText: 'OK'
     })
   } finally {
@@ -174,7 +174,7 @@ onMounted(() => {
     <section class="content-header">
       <div class="container-fluid">
         <div class="d-flex justify-content-between align-items-center mb-3">
-          <h1 class="mb-0">Data Log Kalibrasi</h1>
+          <h1 class="mb-0">Data Log Preventive Maintenance (PM)</h1>
           <span class="badge badge-info">
             Total: {{ logs.length }} data
           </span>
@@ -232,10 +232,9 @@ onMounted(() => {
                       <th style="width: 5%">No</th>
                       <th style="width: 10%">No.ID</th>
                       <th style="width: 15%">Description</th>
-                      <th style="width: 12%">Calibration ID</th>
-                      <th style="width: 10%">Parameter</th>
-                      <th style="width: 10%">Proses Range</th>
-                      <th style="width: 10%">Reject limit</th>
+                      <th style="width: 10%">Type/Model</th>
+                      <th style="width: 10%">SN</th>
+                      <th style="width: 5%">Interval</th>
                       <th style="width: 8%">Due Date</th>
                       <th style="width: 10%">PIC</th>
                       <th style="width: 12%">Execute Date</th>
@@ -245,14 +244,13 @@ onMounted(() => {
                     </tr>  
                   </thead>
                   <tbody>
-                    <tr v-for="(row, index) in logs" :key="`kalibrasi-${index}`" :class="{'table-success': row.status === 'Selesai'}">
+                    <tr v-for="(row, index) in logs" :key="`pm-${index}`" :class="{'table-success': row.status === 'Selesai'}">
                       <td class="text-center">{{ index + 1 }}</td>
                       <td>{{ row['No.ID'] }}</td>
                       <td>{{ row.Description }}</td>
-                      <td>{{ row['Calibration Id.'] }}</td>
-                      <td>{{ row.Parameter }}</td>
-                      <td>{{ row['Process Range'] }}</td>
-                      <td>{{ row['Reject Error Limit'] }}</td>
+                      <td>{{ row['Type/Model'] || row.Parameter || '-' }}</td>
+                      <td>{{ row.SN || '-' }}</td>
+                      <td>{{ row.pm_interval || '-' }}</td>
                       <td class="text-center">{{ row['Due Date'] }}</td>
                       
                       <td>
@@ -314,7 +312,7 @@ onMounted(() => {
                             Menyimpan...
                           </span>
                           <span v-else>
-                            <i class="fas fa-save"></i>
+                            <i class="fas fa-save mr-1"></i>
                           </span>
                         </button>
                         <span v-else class="text-success">

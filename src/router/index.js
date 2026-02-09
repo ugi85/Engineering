@@ -46,6 +46,11 @@ const router = createRouter({
       component: () => import('@/views/logAktifitas/kalibrasi.vue'),
     },
      {
+      path: '/logPm',
+      name: 'logPm',
+      component: () => import('@/views/logAktifitas/pm.vue'),
+    },
+     {
       path: '/chartMonitoring',
       name: 'chartMonitoring',
       component: () => import('@/views/ChartsMonitoring.vue'),

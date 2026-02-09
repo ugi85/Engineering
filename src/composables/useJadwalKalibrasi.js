@@ -1,6 +1,7 @@
 // src/composables/useJadwalKalibrasi.js
 import { ref, nextTick, watch } from 'vue'
 import { jadwalKalibrasiApi } from '@/api/jadwalKalibrasiApi'
+import {useLogAktivitas} from '@/composables/useLogAktivitas'
 
 // === Konfigurasi Cache ===
 const CACHE_KEY = 'jadwal_kalibrasi_cache'
@@ -169,6 +170,42 @@ export function useJadwalKalibrasi() {
     }
   }
 
+  // DI DALAM FUNGSI useJadwalKalibrasi()
+const { createLog } = useLogAktivitas()
+
+// TAMBAHKAN FUNGSI INI
+const saveLogActivity = async (rowData) => {
+  if (!rowData.pic || !rowData.execute_date) {
+    throw new Error('PIC dan Execute Date wajib diisi')
+  }
+  
+  // Tentukan jenis berdasarkan data
+  const jenis = rowData.pm_overall === 'Y' ? 'PM' : 'Kalibrasi'
+  
+  // Konversi tanggal ke string format YYYY-MM-DD jika belum string
+  const tanggalString = typeof rowData.execute_date === 'string' 
+    ? rowData.execute_date 
+    : rowData.execute_date.toISOString().split('T')[0]
+  
+  const logData = {
+    no_id: rowData.no_id,
+    jenis: jenis,
+    tanggal: tanggalString,
+    petugas: rowData.pic,
+    keterangan: rowData.ket || ''
+  }
+  
+  await createLog(logData)
+  
+  // Update status di UI
+  rowData.status = 'Selesai'
+  rowData.log = {
+    petugas: rowData.pic,
+    tanggal: rowData.execute_date,
+    keterangan: rowData.ket
+  }
+}
+
   return {
     refJadwal,
     loading,
@@ -176,6 +213,7 @@ export function useJadwalKalibrasi() {
     saveJadwal,
     deleteJadwal,
     isSaving,
-    isDeleting
+    isDeleting,
+    saveLogActivity
   }
 }

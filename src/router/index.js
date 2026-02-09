@@ -30,6 +30,11 @@ const router = createRouter({
       name: 'dashboardV3',
       component: () => import('@/views/DashboardV3.vue'),
     },
+    {
+      path: '/dashChart',
+      name: 'dashboardChart',
+      component: () => import('@/views/DashboardChart.vue'),
+    },
      {
       path: '/daftarAlat',
       name: 'daftarAlat',
@@ -39,6 +44,16 @@ const router = createRouter({
       path: '/jadwalKalibrasi',
       name: 'jadwalKalibrasi',
       component: () => import('@/views/jadwalKalibrasi/list.vue'),
+    },
+       {
+      path: '/logCal',
+      name: 'logCal',
+      component: () => import('@/views/logAktifitas/kalibrasi.vue'),
+    },
+     {
+      path: '/logPm',
+      name: 'logPm',
+      component: () => import('@/views/logAktifitas/pm.vue'),
     },
      {
       path: '/chartMonitoring',

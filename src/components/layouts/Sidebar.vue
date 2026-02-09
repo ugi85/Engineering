@@ -726,3 +726,32 @@
   </aside>
 
 </template>
+
+<script setup>
+import { onMounted } from 'vue'
+import { useRouter } from 'vue-router'
+
+const router = useRouter()
+
+/**
+ * ✅ Tutup sidebar otomatis setelah navigasi pada mobile
+ * Mencegah sidebar tetap terbuka dan menutupi konten
+ */
+const closeSidebarOnNavigation = () => {
+  // Dengarkan perubahan route
+  router.afterEach(() => {
+    // Cek apakah window width kurang dari 992px (mobile/tablet)
+    if (window.innerWidth < 992) {
+      // Simulasi klik pada pushmenu untuk menutup sidebar
+      const pushMenuBtn = document.querySelector('[data-widget="pushmenu"]')
+      if (pushMenuBtn) {
+        pushMenuBtn.click()
+      }
+    }
+  })
+}
+
+onMounted(() => {
+  closeSidebarOnNavigation()
+})
+</script>

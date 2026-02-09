@@ -5,7 +5,7 @@ import MainLayout from '@/layouts/MainLayout.vue'
 import AuthLayout from '@/layouts/AuthLayout.vue'
 
 //views
-import Dashboard from '@/views/Dashboard.vue'
+import Dashboard from '@/views/DashboardChart.vue'
 import Login from '@/views/pages/examples/login.vue'
 
 const router = createRouter({

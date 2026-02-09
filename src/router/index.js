@@ -30,6 +30,11 @@ const router = createRouter({
       name: 'dashboardV3',
       component: () => import('@/views/DashboardV3.vue'),
     },
+    {
+      path: '/dashChart',
+      name: 'dashboardChart',
+      component: () => import('@/views/DashboardChart.vue'),
+    },
      {
       path: '/daftarAlat',
       name: 'daftarAlat',

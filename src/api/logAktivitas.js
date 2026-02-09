@@ -242,5 +242,148 @@ export const logAktivitasApi = {
       console.error('Error in listLogs:', error)
       throw error
     }
+  },
+
+  // ════════════════════════════════════════════════════════════════
+  // ✅ DASHBOARD CHARTS - BARU (TANPA PERLU DEPLOY ULANG GAS)
+  // ════════════════════════════════════════════════════════════════
+
+  /**
+   * ✅ MENDAPATKAN TOTAL DAFTAR ALAT
+   * Menggunakan endpoint existing 'getdaftarshalat' dan menghitung total
+   */
+  async getTotalDaftarAlat() {
+    try {
+      const data = await this.getDaftarAlat()
+      return {
+        success: true,
+        total: data.length,
+        data: data
+      }
+    } catch (error) {
+      console.error('Error in getTotalDaftarAlat:', error)
+      throw error
+    }
+  },
+
+  /**
+   * ✅ MENDAPATKAN JADWAL KALIBRASI PER BULAN DALAM 1 TAHUN
+   * Memanggil endpoint 'getkalibrasiforperiod' untuk setiap bulan
+   * Menghitung total dan executed (status === 'Selesai')
+   */
+  async getKalibrasiScheduleByMonth(year) {
+    const months = [
+      'January', 'February', 'March', 'April', 'May', 'June',
+      'July', 'August', 'September', 'October', 'November', 'December'
+    ]
+    
+    try {
+      // ✅ PANGGIL SEMUA BULAN SECARA PARALEL (LEBIH CEPAT)
+      const results = await Promise.all(
+        months.map(month => this.getKalibrasiForPeriod(month, year))
+      )
+      
+      // ✅ AGREGASI DATA PER BULAN
+      const scheduleData = months.map((month, index) => {
+        const response = results[index]
+        const allItems = response?.data || []
+        const count = allItems.length
+        const executed = allItems.filter(item => item.status === 'Selesai').length
+        const executedPercentage = count > 0 ? Math.round((executed / count) * 100) : 0
+        
+        return { 
+          month, 
+          count,
+          executed,
+          executedPercentage,
+          label: month.substring(0, 3) // Untuk chart: Jan, Feb, dst
+        }
+      })
+      
+      return {
+        success: true,
+        year,
+        data: scheduleData
+      }
+    } catch (error) {
+      console.error('Error in getKalibrasiScheduleByMonth:', error)
+      throw error
+    }
+  },
+
+  /**
+   * ✅ MENDAPATKAN JADWAL PM PER BULAN DALAM 1 TAHUN
+   * Memanggil endpoint 'getpmforperiod' untuk setiap bulan
+   * Menghitung total dan executed (status === 'Selesai')
+   */
+  async getPMScheduleByMonth(year) {
+    const months = [
+      'January', 'February', 'March', 'April', 'May', 'June',
+      'July', 'August', 'September', 'October', 'November', 'December'
+    ]
+    
+    try {
+      // ✅ PANGGIL SEMUA BULAN SECARA PARALEL (LEBIH CEPAT)
+      const results = await Promise.all(
+        months.map(month => this.getPMForPeriod(month, year))
+      )
+      
+      // ✅ AGREGASI DATA PER BULAN
+      const scheduleData = months.map((month, index) => {
+        const response = results[index]
+        const allItems = response?.data || []
+        const count = allItems.length
+        const executed = allItems.filter(item => item.status === 'Selesai').length
+        const executedPercentage = count > 0 ? Math.round((executed / count) * 100) : 0
+        
+        return { 
+          month, 
+          count,
+          executed,
+          executedPercentage,
+          label: month.substring(0, 3) // Untuk chart: Jan, Feb, dst
+        }
+      })
+      
+      return {
+        success: true,
+        year,
+        data: scheduleData
+      }
+    } catch (error) {
+      console.error('Error in getPMScheduleByMonth:', error)
+      throw error
+    }
+  },
+
+  /**
+   * ✅ MENDAPATKAN TOTAL JADWAL (KALIBRASI + PM) PER TAHUN
+   * Menggabungkan data dari kedua fungsi di atas
+   */
+  async getTotalSchedules(year) {
+    try {
+      // ✅ AMBIL DATA SECARA PARALEL (LEBIH EFEKTIF)
+      const [kalibrasiResult, pmResult] = await Promise.all([
+        this.getKalibrasiScheduleByMonth(year),
+        this.getPMScheduleByMonth(year)
+      ])
+      
+      // ✅ HITUNG TOTAL PER TAHUN
+      const totalKalibrasi = kalibrasiResult.data.reduce((sum, item) => sum + item.count, 0)
+      const totalPM = pmResult.data.reduce((sum, item) => sum + item.count, 0)
+      
+      return {
+        success: true,
+        year,
+        totalKalibrasi,
+        totalPM,
+        totalAktivitas: totalKalibrasi + totalPM,
+        kalibrasiMonthly: kalibrasiResult.data,
+        pmMonthly: pmResult.data
+      }
+    } catch (error) {
+      console.error('Error in getTotalSchedules:', error)
+      throw error
+    }
   }
 }

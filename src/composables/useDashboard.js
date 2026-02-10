@@ -1,10 +1,16 @@
 // src/composables/useDashboard.js
-import { ref, computed } from 'vue'
+import { ref, computed, onUnmounted } from 'vue'
 import { logAktivitasApi } from '@/api/logAktivitas'
+
+// === KONFIGURASI CACHE ===
+const CACHE_KEY = 'dashboard_data_cache'
+const CACHE_DURATION = 5 * 60 * 1000 // 5 menit
+const AUTO_REFRESH_INTERVAL = 3 * 60 * 1000 // 3 menit
 
 export function useDashboard() {
   const loading = ref(false)
   const error = ref(null)
+  const isInitialized = ref(false)
   
   // State untuk data dashboard
   const totalEquipment = ref(0)
@@ -13,26 +19,10 @@ export function useDashboard() {
   const kalibrasiMonthly = ref([])
   const pmMonthly = ref([])
   const selectedYear = ref(new Date().getFullYear().toString())
+  
+  let refreshIntervalId = null
 
-const aktivitasMonthly = computed(() => {
-  return kalibrasiMonthly.value.map(kalibrasi => {
-    // Cari PM yang sesuai bulan
-    const pm = pmMonthly.value.find(item => 
-      item.month.toLowerCase() === kalibrasi.month.toLowerCase()
-    ) || { count: 0 }
-    
-    return {
-      month: kalibrasi.month,
-      count: kalibrasi.count + pm.count
-    }
-  })
-})
-
-const totalAktivitas = computed(() => {
-  return totalKalibrasi.value + totalPM.value
-})
-
-  // Chart data computed
+  // ✅ CHART DATA - REACTIVE KE DATA BULANAN
   const chartData = computed(() => {
     const labels = [
       'January', 'February', 'March', 'April', 'May', 'June',
@@ -40,7 +30,7 @@ const totalAktivitas = computed(() => {
     ]
     
     return {
-      labels,
+      labels: labels.map(month => month.substring(0, 3)),
       datasets: [
         {
           label: 'Kalibrasi',
@@ -70,27 +60,19 @@ const totalAktivitas = computed(() => {
     }
   })
 
-  // Chart options
+  // ✅ CHART OPTIONS
   const chartOptions = computed(() => ({
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
       legend: {
         position: 'top',
-        labels: {
-          font: {
-            size: 13
-          }
-        }
+        labels: { font: { size: 13 } }
       },
       tooltip: {
         backgroundColor: 'rgba(0, 0, 0, 0.7)',
-        titleFont: {
-          size: 14
-        },
-        bodyFont: {
-          size: 13
-        },
+        titleFont: { size: 14 },
+        bodyFont: { size: 13 },
         padding: 12,
         displayColors: true
       }
@@ -98,28 +80,74 @@ const totalAktivitas = computed(() => {
     scales: {
       y: {
         beginAtZero: true,
-        grid: {
-          color: 'rgba(0, 0, 0, 0.05)'
-        },
-        ticks: {
-          stepSize: 1
-        }
+        grid: { color: 'rgba(0, 0, 0, 0.05)' },
+        ticks: { stepSize: 1 }
       },
-      x: {
-        grid: {
-          display: false
-        }
-      }
+      x: { grid: { display: false } }
     }
   }))
 
-  // Fetch semua data dashboard
-  const fetchDashboardData = async (year = selectedYear.value) => {
+  // ✅ FUNGSI: AMBIL DATA DARI CACHE
+  const getFromCache = () => {
+    try {
+      const cached = localStorage.getItem(CACHE_KEY)
+      if (!cached) return null
+      
+      const parsed = JSON.parse(cached)
+      const now = Date.now()
+      
+      if (parsed && now - parsed.timestamp < CACHE_DURATION) {
+        return parsed
+      }
+      
+      localStorage.removeItem(CACHE_KEY)
+    } catch (e) {
+      console.warn('Cache corrupted, clearing:', e)
+      localStorage.removeItem(CACHE_KEY)
+    }
+    return null
+  }
+
+  // ✅ FUNGSI: SIMPAN KE CACHE
+  const saveToCache = (data) => {
+    try {
+      localStorage.setItem(
+        CACHE_KEY,
+        JSON.stringify({ ...data, timestamp: Date.now() })
+      )
+    } catch (e) {
+      console.warn('Failed to save cache:', e)
+    }
+  }
+
+  // ✅ FETCH DENGAN CACHE + BACKGROUND UPDATE
+  const fetchDashboardData = async (year = selectedYear.value, useCache = true) => {
+    if (useCache) {
+      const cachedData = getFromCache()
+      if (cachedData) {
+        // Set state dari cache (INSTANT!)
+        totalEquipment.value = cachedData.totalEquipment
+        totalKalibrasi.value = cachedData.totalKalibrasi
+        totalPM.value = cachedData.totalPM
+        kalibrasiMonthly.value = cachedData.kalibrasiMonthly
+        pmMonthly.value = cachedData.pmMonthly
+        selectedYear.value = cachedData.year || year
+        
+        // Update di background
+        setTimeout(() => {
+          refreshDashboardData(year)
+        }, 100)
+        
+        isInitialized.value = true
+        return
+      }
+    }
+    
+    // Fetch dari API jika tidak ada cache
     loading.value = true
     error.value = null
     
     try {
-      // Fetch semua data secara paralel
       const [
         equipmentData,
         schedulesData
@@ -128,7 +156,6 @@ const totalAktivitas = computed(() => {
         logAktivitasApi.getTotalSchedules(year)
       ])
       
-      // Update state
       totalEquipment.value = equipmentData.total
       totalKalibrasi.value = schedulesData.totalKalibrasi
       totalPM.value = schedulesData.totalPM
@@ -136,8 +163,19 @@ const totalAktivitas = computed(() => {
       pmMonthly.value = schedulesData.pmMonthly
       selectedYear.value = year
       
+      // Simpan ke cache
+      saveToCache({
+        totalEquipment: equipmentData.total,
+        totalKalibrasi: schedulesData.totalKalibrasi,
+        totalPM: schedulesData.totalPM,
+        kalibrasiMonthly: schedulesData.kalibrasiMonthly,
+        pmMonthly: schedulesData.pmMonthly,
+        year
+      })
+      
+      isInitialized.value = true
     } catch (err) {
-      console.error('Error fetching dashboard data:', err)
+      console.error('Error fetching dashboard ', err)
       error.value = err.message || 'Gagal memuat data dashboard'
       throw err
     } finally {
@@ -145,16 +183,95 @@ const totalAktivitas = computed(() => {
     }
   }
 
-  // Refresh data
-  const refreshData = () => {
-    fetchDashboardData(selectedYear.value)
+  // ✅ REFRESH DATA TANPA CACHE (UNTUK BACKGROUND UPDATE)
+  const refreshDashboardData = async (year = selectedYear.value) => {
+    try {
+      const [
+        equipmentData,
+        schedulesData
+      ] = await Promise.all([
+        logAktivitasApi.getTotalDaftarAlat(),
+        logAktivitasApi.getTotalSchedules(year)
+      ])
+      
+      totalEquipment.value = equipmentData.total
+      totalKalibrasi.value = schedulesData.totalKalibrasi
+      totalPM.value = schedulesData.totalPM
+      kalibrasiMonthly.value = schedulesData.kalibrasiMonthly
+      pmMonthly.value = schedulesData.pmMonthly
+      
+      // Update cache
+      saveToCache({
+        totalEquipment: equipmentData.total,
+        totalKalibrasi: schedulesData.totalKalibrasi,
+        totalPM: schedulesData.totalPM,
+        kalibrasiMonthly: schedulesData.kalibrasiMonthly,
+        pmMonthly: schedulesData.pmMonthly,
+        year
+      })
+      
+      console.log('[Dashboard] Background refresh completed')
+    } catch (err) {
+      console.warn('[Dashboard] Background refresh failed:', err.message)
+    }
   }
 
-  // Change year
+  // ✅ AUTO REFRESH SETIAP 3 MENIT
+  const startAutoRefresh = () => {
+    if (refreshIntervalId) return
+    
+    refreshIntervalId = setInterval(() => {
+      if (isInitialized.value) {
+        refreshDashboardData(selectedYear.value)
+      }
+    }, AUTO_REFRESH_INTERVAL)
+  }
+
+  // ✅ STOP AUTO REFRESH
+  const stopAutoRefresh = () => {
+    if (refreshIntervalId) {
+      clearInterval(refreshIntervalId)
+      refreshIntervalId = null
+    }
+  }
+
+  // ✅ CLEANUP SAAT COMPOSABLE DIHAPUS
+  onUnmounted(() => {
+    stopAutoRefresh()
+  })
+
+  // ✅ REFRESH DATA (MANUAL)
+  const refreshData = () => {
+    fetchDashboardData(selectedYear.value, false)
+  }
+
+  // ✅ GANTI TAHUN
   const changeYear = (year) => {
     selectedYear.value = year
-    fetchDashboardData(year)
+    fetchDashboardData(year, false)
   }
+
+  // ✅ BULAN SAAT INI
+  const currentMonth = computed(() => {
+    const monthNames = [
+      'January', 'February', 'March', 'April', 'May', 'June',
+      'July', 'August', 'September', 'October', 'November', 'December'
+    ]
+    return monthNames[new Date().getMonth()]
+  })
+
+  // ✅ SISA JADWAL BULAN SAAT INI (TOTAL - EXECUTED)
+  const currentMonthRemaining = computed(() => {
+    const currentMonthName = currentMonth.value
+    
+    const kalibrasiItem = kalibrasiMonthly.value.find(m => m.month === currentMonthName)
+    const pmItem = pmMonthly.value.find(m => m.month === currentMonthName)
+    
+    const kalibrasiRemaining = kalibrasiItem ? (kalibrasiItem.count - kalibrasiItem.executed) : 0
+    const pmRemaining = pmItem ? (pmItem.count - pmItem.executed) : 0
+    
+    return kalibrasiRemaining + pmRemaining
+  })
 
   return {
     // State
@@ -166,14 +283,19 @@ const totalAktivitas = computed(() => {
     kalibrasiMonthly,
     pmMonthly,
     selectedYear,
+    isInitialized,
     
     // Computed
     chartData,
     chartOptions,
+    currentMonth,
+    currentMonthRemaining,
     
     // Methods
     fetchDashboardData,
     refreshData,
-    changeYear
+    changeYear,
+    startAutoRefresh,
+    stopAutoRefresh
   }
 }

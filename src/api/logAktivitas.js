@@ -2,6 +2,9 @@
 import api from '@/plugins/axios'
 import { useSettingsStore } from '@/stores/settings'
 
+// ✅ SET TIMEOUT GLOBAL 30 DETIK
+api.defaults.timeout = 30000
+
 function toFormData(data) {
   const params = new URLSearchParams()
   Object.entries(data).forEach(([key, value]) => {
@@ -245,20 +248,16 @@ export const logAktivitasApi = {
   },
 
   // ════════════════════════════════════════════════════════════════
-  // ✅ DASHBOARD CHARTS - BARU (TANPA PERLU DEPLOY ULANG GAS)
+  // ✅ DASHBOARD CHARTS - SEQUENTIAL REQUEST + ERROR HANDLING
   // ════════════════════════════════════════════════════════════════
 
-  /**
-   * ✅ MENDAPATKAN TOTAL DAFTAR ALAT
-   * Menggunakan endpoint existing 'getdaftarshalat' dan menghitung total
-   */
   async getTotalDaftarAlat() {
     try {
       const data = await this.getDaftarAlat()
       return {
         success: true,
         total: data.length,
-        data: data
+        data
       }
     } catch (error) {
       console.error('Error in getTotalDaftarAlat:', error)
@@ -267,39 +266,41 @@ export const logAktivitasApi = {
   },
 
   /**
-   * ✅ MENDAPATKAN JADWAL KALIBRASI PER BULAN DALAM 1 TAHUN
-   * Memanggil endpoint 'getkalibrasiforperiod' untuk setiap bulan
-   * Menghitung total dan executed (status === 'Selesai')
+   * ✅ MENDAPATKAN JADWAL KALIBRASI PER BULAN - REQUEST SEQUENTIAL
+   * Menghindari timeout & CORS dengan request satu per satu
    */
   async getKalibrasiScheduleByMonth(year) {
     const months = [
       'January', 'February', 'March', 'April', 'May', 'June',
       'July', 'August', 'September', 'October', 'November', 'December'
     ]
-    
+
     try {
-      // ✅ PANGGIL SEMUA BULAN SECARA PARALEL (LEBIH CEPAT)
-      const results = await Promise.all(
-        months.map(month => this.getKalibrasiForPeriod(month, year))
+      // Jalankan semua request bulan secara paralel dan tangani hasil masing-masing
+      const promises = months.map(month =>
+        this.getKalibrasiForPeriod(month, year)
+          .then(response => ({ month, items: response?.data || [] }))
+          .catch(err => {
+            console.warn(`Error fetching kalibrasi ${month} ${year}:`, err.message)
+            return { month, items: [] }
+          })
       )
-      
-      // ✅ AGREGASI DATA PER BULAN
-      const scheduleData = months.map((month, index) => {
-        const response = results[index]
-        const allItems = response?.data || []
-        const count = allItems.length
-        const executed = allItems.filter(item => item.status === 'Selesai').length
+
+      const results = await Promise.all(promises)
+
+      const scheduleData = results.map(({ month, items }) => {
+        const count = items.length
+        const executed = items.filter(item => item.status === 'Selesai').length
         const executedPercentage = count > 0 ? Math.round((executed / count) * 100) : 0
-        
-        return { 
-          month, 
+        return {
+          month,
           count,
           executed,
           executedPercentage,
-          label: month.substring(0, 3) // Untuk chart: Jan, Feb, dst
+          label: month.substring(0, 3)
         }
       })
-      
+
       return {
         success: true,
         year,
@@ -312,39 +313,40 @@ export const logAktivitasApi = {
   },
 
   /**
-   * ✅ MENDAPATKAN JADWAL PM PER BULAN DALAM 1 TAHUN
-   * Memanggil endpoint 'getpmforperiod' untuk setiap bulan
-   * Menghitung total dan executed (status === 'Selesai')
+   * ✅ MENDAPATKAN JADWAL PM PER BULAN - REQUEST SEQUENTIAL
+   * Menghindari timeout & CORS dengan request satu per satu
    */
   async getPMScheduleByMonth(year) {
     const months = [
       'January', 'February', 'March', 'April', 'May', 'June',
       'July', 'August', 'September', 'October', 'November', 'December'
     ]
-    
+
     try {
-      // ✅ PANGGIL SEMUA BULAN SECARA PARALEL (LEBIH CEPAT)
-      const results = await Promise.all(
-        months.map(month => this.getPMForPeriod(month, year))
+      const promises = months.map(month =>
+        this.getPMForPeriod(month, year)
+          .then(response => ({ month, items: response?.data || [] }))
+          .catch(err => {
+            console.warn(`Error fetching PM ${month} ${year}:`, err.message)
+            return { month, items: [] }
+          })
       )
-      
-      // ✅ AGREGASI DATA PER BULAN
-      const scheduleData = months.map((month, index) => {
-        const response = results[index]
-        const allItems = response?.data || []
-        const count = allItems.length
-        const executed = allItems.filter(item => item.status === 'Selesai').length
+
+      const results = await Promise.all(promises)
+
+      const scheduleData = results.map(({ month, items }) => {
+        const count = items.length
+        const executed = items.filter(item => item.status === 'Selesai').length
         const executedPercentage = count > 0 ? Math.round((executed / count) * 100) : 0
-        
-        return { 
-          month, 
+        return {
+          month,
           count,
           executed,
           executedPercentage,
-          label: month.substring(0, 3) // Untuk chart: Jan, Feb, dst
+          label: month.substring(0, 3)
         }
       })
-      
+
       return {
         success: true,
         year,
@@ -356,19 +358,18 @@ export const logAktivitasApi = {
     }
   },
 
+
   /**
    * ✅ MENDAPATKAN TOTAL JADWAL (KALIBRASI + PM) PER TAHUN
-   * Menggabungkan data dari kedua fungsi di atas
    */
   async getTotalSchedules(year) {
     try {
-      // ✅ AMBIL DATA SECARA PARALEL (LEBIH EFEKTIF)
+      // ✅ AMBIL DATA SECARA PARALEL (AMAN KARENA HANYA 2 REQUEST)
       const [kalibrasiResult, pmResult] = await Promise.all([
         this.getKalibrasiScheduleByMonth(year),
         this.getPMScheduleByMonth(year)
       ])
       
-      // ✅ HITUNG TOTAL PER TAHUN
       const totalKalibrasi = kalibrasiResult.data.reduce((sum, item) => sum + item.count, 0)
       const totalPM = pmResult.data.reduce((sum, item) => sum + item.count, 0)
       

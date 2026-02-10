@@ -58,13 +58,18 @@
           </div>
           
           <div class="col-lg-3 col-6">
-            <div class="small-box" :class="currentMonthStats.isCompleted ? 'bg-success' : 'bg-danger'">
+            <div class="small-box bg-danger">
               <div class="inner">
-                <h3>{{ currentMonthStats.remaining || 0 }}</h3>
+                <h3>{{ currentMonthRemaining || 0 }}</h3>
                 <p>
-                  <strong>{{ currentMonthStats.month.substring(0, 3) }}</strong> - OverDue<br>
-                  <!-- <small>(Kalibrasi: {{ currentMonthStats.kalibrasiCount }}, PM: {{ currentMonthStats.pmCount }})</small> -->
+                  OverDue - <strong>{{ currentMonth }}</strong>
                 </p>
+
+
+                 <!-- <p> -->
+                  <!-- <strong>{{ currentMonthStats.month.substring(0, 3) }}</strong> - OverDue<br> -->
+                  <!-- <small>(Kalibrasi: {{ currentMonthStats.kalibrasiCount }}, PM: {{ currentMonthStats.pmCount }})</small> -->
+                <!-- </p> -->
               </div>
               <div class="icon">
                 <i class="fas fa-tasks"></i>
@@ -92,7 +97,7 @@
                 <div class="position-relative" style="height: 400px">
                   <canvas ref="chartRef"></canvas>
                   
-                  <!-- Overlay Loading -->
+                  <!-- Loading Overlay -->
                   <div v-if="loading && !hasData" class="chart-overlay">
                     <div class="spinner-border text-primary" role="status">
                       <span class="sr-only">Loading...</span>
@@ -100,8 +105,23 @@
                     <p class="mt-2">Memuat data dashboard...</p>
                   </div>
                   
-                  <!-- Overlay No Data -->
-                  <div v-if="!loading && !hasData" class="chart-overlay">
+                  <!-- Error Overlay -->
+                  <div v-if="error" class="chart-overlay">
+                    <i class="fas fa-exclamation-triangle text-danger fa-2x mb-3"></i>
+                    <p class="text-danger font-weight-bold">Gagal memuat data</p>
+                    <p class="text-muted">{{ error }}</p>
+                    <button 
+                      @click="retryFetch" 
+                      class="btn btn-primary mt-3"
+                      :disabled="retrying"
+                    >
+                      <i class="fas fa-sync-alt mr-1"></i>
+                      {{ retrying ? 'Mencoba...' : 'Coba Lagi' }}
+                    </button>
+                  </div>
+                  
+                  <!-- No Data Overlay -->
+                  <div v-if="!loading && !hasData && !error" class="chart-overlay">
                     <i class="fas fa-chart-bar fa-3x text-muted mb-3"></i>
                     <p class="text-muted">Tidak ada data untuk ditampilkan</p>
                   </div>
@@ -143,24 +163,16 @@
                         </span>
                       </td>
                       <td class="text-center">
-                        <div class="progress progress-xs">
+                        <div class="progress progress-xs mb-2">
                           <div 
                             class="progress-bar" 
                             :class="item.executedPercentage === 100 && item.count > 0 ? 'bg-success' : 'bg-info'"
-                            :style="{ 
-                              width: (item.executedPercentage || 0) + '%',
-                              color: (item.executedPercentage || 0) > 30 ? 'white' : '#007bff'
-                            }"
+                            :style="{ width: (item.executedPercentage || 0) + '%' }"
                           >
-                            <span v-if="(item.executedPercentage || 0) > 5">
-                              <!-- {{ item.executedPercentage || 0 }}% -->
-                            </span>
                           </div>
                         </div>
-                        <span v-if="(item.executedPercentage || 0) <= 5" class="ml-2">
-                        </span>
+                        <span>{{ item.executedPercentage || 0 }}%</span>
                       </td>
-                          {{ item.executedPercentage || 0 }}%
                     </tr>
                   </tbody>
                 </table>
@@ -198,24 +210,16 @@
                         </span>
                       </td>
                       <td class="text-center">
-                        <div class="progress progress-xs">
+                        <div class="progress progress-xs mb-2">
                           <div 
                             class="progress-bar" 
                             :class="item.executedPercentage === 100 && item.count > 0 ? 'bg-success' : 'bg-warning'"
-                            :style="{ 
-                              width: (item.executedPercentage || 0) + '%',
-                              color: (item.executedPercentage || 0) > 30 ? 'white' : '#856404'
-                            }"
+                            :style="{ width: (item.executedPercentage || 0) + '%' }"
                           >
-                            <span v-if="(item.executedPercentage || 0) > 5">
-                              <!-- {{ item.executedPercentage || 0 }}% -->
-                            </span>
                           </div>
                         </div>
-                        <span v-if="(item.executedPercentage || 0) <= 5" class="ml-2">
-                        </span>
+                        <span>{{ item.executedPercentage || 0 }}%</span>
                       </td>
-                          {{ item.executedPercentage || 0 }}%
                     </tr>
                   </tbody>
                 </table>
@@ -231,32 +235,34 @@
 <script setup>
 import { ref, onMounted, onUnmounted, watch, computed } from 'vue'
 import { Chart, registerables } from 'chart.js'
-import { logAktivitasApi } from '@/api/logAktivitas'
+import { useDashboard } from '@/composables/useDashboard'
 
 // Register Chart.js
 Chart.register(...registerables)
 
-// === Konfigurasi Cache ===
-const CACHE_KEY = 'dashboard_data_cache'
-const CACHE_DURATION = 5 * 60 * 1000 // 5 menit
-const AUTO_REFRESH_INTERVAL = 3 * 60 * 1000 // 3 menit - refresh background
+// ✅ GUNAKAN COMPOSABLE
+const {
+  loading,
+  error,
+  totalEquipment,
+  totalKalibrasi,
+  totalPM,
+  kalibrasiMonthly,
+  pmMonthly,
+  selectedYear,
+  isInitialized,
+  chartData,
+  chartOptions,
+  currentMonth,
+  currentMonthRemaining,
+  fetchDashboardData,
+  startAutoRefresh,
+  stopAutoRefresh
+} = useDashboard()
 
-// State
-const loading = ref(false)
-const totalEquipment = ref(0)
-const totalKalibrasi = ref(0)
-const totalPM = ref(0)
-const kalibrasiMonthly = ref([])
-const pmMonthly = ref([])
 const chartRef = ref(null)
 let chartInstance = null
-let refreshIntervalId = null
-
-// Daftar bulan
-const monthList = [
-  'January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December'
-]
+const retrying = ref(false)
 
 // Computed: Cek apakah ada data
 const hasData = computed(() => {
@@ -264,296 +270,63 @@ const hasData = computed(() => {
          (totalKalibrasi.value > 0 || totalPM.value > 0)
 })
 
-/**
- * 📊 Data untuk bulan saat ini (realtime)
- * Menampilkan total jadwal dan sisa jadwal (countdown) untuk bulan sekarang
- */
-const currentMonthStats = computed(() => {
-  const now = new Date()
-  const currentMonthName = monthList[now.getMonth()]
-  
-  const kalItem = kalibrasiMonthly.value.find(m => m.month === currentMonthName)
-  const pmItem = pmMonthly.value.find(m => m.month === currentMonthName)
-
-  const kalibrasiCount = kalItem?.count || 0
-  const kalibrasiExecuted = kalItem?.executed || 0
-  const pmCount = pmItem?.count || 0
-  const pmExecuted = pmItem?.executed || 0
-
-  const totalSchedules = kalibrasiCount + pmCount
-  const totalExecuted = kalibrasiExecuted + pmExecuted
-  const remaining = Math.max(0, totalSchedules - totalExecuted)
-  const executedPercentage = totalSchedules > 0 ? Math.round((totalExecuted / totalSchedules) * 100) : 0
-
-  return {
-    month: currentMonthName,
-    totalSchedules,
-    totalExecuted,
-    remaining,
-    kalibrasiCount,
-    kalibrasiExecuted,
-    pmCount,
-    pmExecuted,
-    executedPercentage,
-    isCompleted: remaining === 0 && totalSchedules > 0
-  }
-})
-
-// Hitung persentase
-const getPercentage = (value, total) => {
-  if (!total || total === 0) return 0
-  return Math.round((value / total) * 100)
-}
-
-// Inisialisasi chart
+// ✅ INISIALISASI CHART - DIPERBAIKI
 const initChart = () => {
   if (chartInstance) {
     chartInstance.destroy()
   }
   
   if (chartRef.value && hasData.value) {
-    const labels = [
-      'January', 'February', 'March', 'April', 'May', 'June',
-      'July', 'August', 'September', 'October', 'November', 'December'
-    ]
-    
-    const chartData = {
-      labels: labels.map(month => month.substring(0, 3)),
-      datasets: [
-        {
-          label: 'Kalibrasi',
-          data: labels.map(month => {
-            const item = kalibrasiMonthly.value.find(m => m.month === month)
-            return item ? item.count : 0
-          }),
-          borderColor: '#4285F4',
-          backgroundColor: 'rgba(66, 133, 244, 0.1)',
-          borderWidth: 2,
-          fill: true,
-          tension: 0.3
-        },
-        {
-          label: 'Preventive Maintenance',
-          data: labels.map(month => {
-            const item = pmMonthly.value.find(m => m.month === month)
-            return item ? item.count : 0
-          }),
-          borderColor: '#34A853',
-          backgroundColor: 'rgba(52, 168, 83, 0.1)',
-          borderWidth: 2,
-          fill: true,
-          tension: 0.3
-        }
-      ]
-    }
-    
-    const chartOptions = {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: {
-          position: 'top',
-          labels: {
-            font: {
-              size: 13
-            }
-          }
-        },
-        tooltip: {
-          backgroundColor: 'rgba(0, 0, 0, 0.7)',
-          titleFont: {
-            size: 14
-          },
-          bodyFont: {
-            size: 13
-          },
-          padding: 12,
-          displayColors: true
-        }
-      },
-      scales: {
-        y: {
-          beginAtZero: true,
-          grid: {
-            color: 'rgba(0, 0, 0, 0.05)'
-          },
-          ticks: {
-            stepSize: 1
-          }
-        },
-        x: {
-          grid: {
-            display: false
-          }
-        }
-      }
-    }
-    
+    // ✅ FIX: Tambahkan "data:" sebelum chartData.value
     chartInstance = new Chart(chartRef.value, {
       type: 'line',
-      data: chartData,
-      options: chartOptions
+      data: chartData.value,  // ← INI YANG DIPERBAIKI
+      options: chartOptions.value
     })
   }
 }
 
-// Fungsi untuk mengambil data dari API
-const fetchDashboardData = async () => {
-  try {
-    // Ambil semua data secara paralel
-    const [
-      equipmentResponse,
-      kalibrasiResponse,
-      pmResponse
-    ] = await Promise.all([
-      logAktivitasApi.getTotalDaftarAlat(),
-      logAktivitasApi.getKalibrasiScheduleByMonth('2026'),
-      logAktivitasApi.getPMScheduleByMonth('2026')
-    ])
-    
-    if (!equipmentResponse.success || !kalibrasiResponse.success || !pmResponse.success) {
-      throw new Error('Gagal mengambil data dashboard')
-    }
-    
-    return {
-      totalEquipment: equipmentResponse.total,
-      totalKalibrasi: kalibrasiResponse.data.reduce((sum, item) => sum + item.count, 0),
-      totalPM: pmResponse.data.reduce((sum, item) => sum + item.count, 0),
-      kalibrasiMonthly: kalibrasiResponse.data,
-      pmMonthly: pmResponse.data
-    }
-  } catch (error) {
-    console.error('Fetch Error:', error)
-    return null
-  }
-}
-
-// Inisialisasi dengan cache
-const initDashboard = async () => {
-  const now = Date.now()
-  let cachedData = null
-
-  // Coba baca dari cache
-  const cached = localStorage.getItem(CACHE_KEY)
-  if (cached) {
-    try {
-      const parsed = JSON.parse(cached)
-      if (parsed && now - parsed.timestamp < CACHE_DURATION) {
-        cachedData = parsed
-      }
-    } catch (e) {
-      console.warn('Cache dashboard corrupted, ignoring')
-      localStorage.removeItem(CACHE_KEY)
-    }
-  }
-
-  if (cachedData) {
-    // Tampilkan langsung dari cache
-    totalEquipment.value = cachedData.totalEquipment
-    totalKalibrasi.value = cachedData.totalKalibrasi
-    totalPM.value = cachedData.totalPM
-    kalibrasiMonthly.value = cachedData.kalibrasiMonthly
-    pmMonthly.value = cachedData.pmMonthly
-    
-    loading.value = false
-    initChart()
-
-    // Update di background
-    fetchDashboardData().then(freshData => {
-      if (freshData) {
-        localStorage.setItem(
-          CACHE_KEY,
-          JSON.stringify({ ...freshData, timestamp: Date.now() })
-        )
-        // Update state dengan data baru
-        totalEquipment.value = freshData.totalEquipment
-        totalKalibrasi.value = freshData.totalKalibrasi
-        totalPM.value = freshData.totalPM
-        kalibrasiMonthly.value = freshData.kalibrasiMonthly
-        pmMonthly.value = freshData.pmMonthly
-        initChart() // Refresh chart
-      }
-    }).catch(console.error)
-  } else {
-    // Ambil dari API
-    loading.value = true
-    const data = await fetchDashboardData()
-    loading.value = false
-
-    if (data) {
-      totalEquipment.value = data.totalEquipment
-      totalKalibrasi.value = data.totalKalibrasi
-      totalPM.value = data.totalPM
-      kalibrasiMonthly.value = data.kalibrasiMonthly
-      pmMonthly.value = data.pmMonthly
-      
-      initChart()
-      localStorage.setItem(
-        CACHE_KEY,
-        JSON.stringify({ ...data, timestamp: now })
-      )
-    } else {
-      console.error("Gagal mengambil data untuk dashboard.")
-    }
-  }
-}
-
-// Watch untuk update chart saat data berubah
+// ✅ WATCH UNTUK UPDATE CHART SAAT DATA BERUBAH
 watch([kalibrasiMonthly, pmMonthly], () => {
   if (!loading.value && chartRef.value) {
-    initChart()
+    if (chartInstance) {
+      // Update existing chart
+      chartInstance.data = chartData.value
+      chartInstance.update('active')
+    } else {
+      // Initialize chart for the first time
+      initChart()
+    }
   }
 })
 
-/**
- * ✅ Fungsi untuk refresh background data tanpa menampilkan loading
- * Dijalankan secara otomatis setiap 5 menit
- */
-const startAutoRefresh = () => {
-  if (refreshIntervalId) {
-    clearInterval(refreshIntervalId)
-  }
+// ✅ RETRY FETCH
+const retryFetch = async () => {
+  if (retrying.value) return
   
-  refreshIntervalId = setInterval(async () => {
-    try {
-      // Fetch data baru tanpa menampilkan loading spinner
-      const freshData = await fetchDashboardData()
-      
-      if (freshData) {
-        // Update cache
-        localStorage.setItem(
-          CACHE_KEY,
-          JSON.stringify({ ...freshData, timestamp: Date.now() })
-        )
-        
-        // Update state dengan data baru (silent update)
-        totalEquipment.value = freshData.totalEquipment
-        totalKalibrasi.value = freshData.totalKalibrasi
-        totalPM.value = freshData.totalPM
-        kalibrasiMonthly.value = freshData.kalibrasiMonthly
-        pmMonthly.value = freshData.pmMonthly
-        
-        // Chart akan auto-update melalui watch
-        console.log('[Dashboard] Auto-refresh completed at', new Date().toLocaleTimeString())
-      }
-    } catch (error) {
-      console.error('[Dashboard] Auto-refresh error:', error)
-      // Silently fail - tidak akan mengganggu UX
-    }
-  }, AUTO_REFRESH_INTERVAL)
+  retrying.value = true
+  try {
+    await fetchDashboardData(selectedYear.value, false)
+  } finally {
+    retrying.value = false
+  }
 }
 
 onMounted(() => {
-  initDashboard()
-  // Mulai auto-refresh setelah inisialisasi
+  // ✅ INISIALISASI DENGAN CACHE
+  fetchDashboardData('2026')
+  
+  // ✅ MULAI AUTO-REFRESH
   startAutoRefresh()
 })
 
 onUnmounted(() => {
-  // Cleanup interval saat component di-unmount
-  if (refreshIntervalId) {
-    clearInterval(refreshIntervalId)
-    refreshIntervalId = null
+  // ✅ STOP AUTO-REFRESH
+  stopAutoRefresh()
+  
+  // ✅ DESTROY CHART
+  if (chartInstance) {
+    chartInstance.destroy()
   }
 })
 </script>

@@ -111,8 +111,11 @@ onMounted(() => {
   <div class="content-wrapper">
     <!-- Header dengan Tombol Tambah -->
     <section class="content-header">
-      <div class="container-fluid d-flex justify-content-between align-items-center">
-        <h1 class="mb-0">Daftar Alat & Perawatan</h1>
+      <div class="container-fluid d-flex justify-content-between align-items-start">
+        <div>
+          <h1 class="mb-0">Daftar Alat & Perawatan</h1>
+          <small class="text-muted">No Reff: AGIS-WI-ENG-001-LD1</small>
+        </div>
         <button class="btn btn-primary" @click="openCreateModal">
           <i class="fas fa-plus mr-1"></i>Tambah Alat
         </button>

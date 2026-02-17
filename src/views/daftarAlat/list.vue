@@ -1,11 +1,11 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useDaftarAlat } from '@/composables/useDaftarAlat'
 
 const { tools, loading, fetchList, saveTool, isSaving, deleteTool } = useDaftarAlat()
 
-// State untuk modal
-const editingTool = ref({
+// Template untuk field form
+const getEmptyTool = () => ({
   no: '',
   no_id: '',
   description: '',
@@ -27,34 +27,29 @@ const editingTool = ref({
   status_calibration: ''
 })
 
+// State untuk modal
+const isModalOpen = ref(false)
+const isEditMode = ref(false)
+const editingTool = ref(getEmptyTool())
+
+// Computed untuk judul modal
+const modalTitle = computed(() =>
+  isEditMode.value ? 'Edit Daftar Alat ' : 'Tambah Alat Baru'
+)
+
+// Computed untuk text tombol simpan
+const saveButtonText = computed(() =>
+  isEditMode.value ? 'Simpan Perubahan' : 'Tambah Alat'
+)
+
 // Refresh data
 const refresh = () => fetchList()
 
 // Buka modal TAMBAH
 const openCreateModal = () => {
-  editingTool.value = {
-    no: '',
-    no_id: '',
-    description: '',
-    type_model: '',
-    sn: '',
-    year: '',
-    crit_product: '',
-    crit_process: '',
-    crit_safety: '',
-    crit_env: '',
-    pm_overall: '',
-    pm_6monthly: '',
-    pm_yearly: '',
-    pm_internal_external: '',
-    calib_yesno: '',
-    calib_schedule: '',
-    location: '',
-    status_pm: '',
-    status_calibration: ''
-  }
-  $('#editToolModalLabel').text('Tambah Alat Baru')
-  $('#editToolModal').modal('show')
+  editingTool.value = getEmptyTool()
+  isEditMode.value = false
+  isModalOpen.value = true
 }
 
 // Buka modal EDIT
@@ -80,20 +75,24 @@ const openEditModal = (tool) => {
     status_pm: tool.status_pm || '',
     status_calibration: tool.status_calibration || ''
   }
-  $('#editToolModalLabel').text('Edit Alat Kalibrasi')
-  $('#editToolModal').modal('show')
+  isEditMode.value = true
+  isModalOpen.value = true
+}
+
+// Tutup modal
+const closeModal = () => {
+  isModalOpen.value = false
+  editingTool.value = getEmptyTool()
+  isEditMode.value = false
 }
 
 // Simpan (Create/Update)
 const saveEditingTool = async () => {
-  isSaving.value = true
   try {
     await saveTool(editingTool.value)
-    $('#editToolModal').modal('hide')
+    closeModal()
   } catch (error) {
     console.error('Gagal menyimpan:', error)
-  } finally {
-    isSaving.value = false
   }
 }
 
@@ -114,10 +113,10 @@ onMounted(() => {
       <div class="container-fluid d-flex justify-content-between align-items-start">
         <div>
           <h1 class="mb-0">Daftar Alat & Perawatan</h1>
-          <small class="text-muted">No Reff: AGIS-WI-ENG-001-LD1</small>
+          <small class="text-muted">No Reff: AGIS-WI-ENG-001-LD1_v5.0</small>
         </div>
-        <button class="btn btn-primary" @click="openCreateModal">
-          <i class="fas fa-plus mr-1"></i>Tambah Alat
+        <button class="btn btn-info" @click="openCreateModal">
+          Tambah Alat
         </button>
       </div>
     </section>
@@ -208,14 +207,27 @@ onMounted(() => {
     </section>
 
     <!-- Modal Create/Edit -->
-    <div class="modal fade" id="editToolModal" tabindex="-1">
+    <div 
+      v-if="isModalOpen"
+      class="modal fade show" 
+      tabindex="-1"
+      style="display: block; background-color: rgba(0, 0, 0, 0.5);"
+    >
       <div class="modal-dialog modal-lg">
         <div class="modal-content">
           <div class="modal-header">
-            <h5 class="modal-title" id="editToolModalLabel">Edit Alat Kalibrasi</h5>
-            <button type="button" class="close" data-dismiss="modal">&times;</button>
+            <h5 class="modal-title">{{ modalTitle }}</h5>
+            <button 
+              type="button" 
+              class="close" 
+              @click="closeModal"
+              :disabled="isSaving"
+            >
+              &times;
+            </button>
           </div>
           <div class="modal-body">
+            <!-- Basic Information -->
             <div class="row">
               <div class="col-md-6">
                 <div v-if="editingTool.no" class="form-group">
@@ -234,6 +246,8 @@ onMounted(() => {
                   <label>Type/Model</label>
                   <input v-model="editingTool.type_model" type="text" class="form-control" />
                 </div>
+              </div>
+              <div class="col-md-6">
                 <div class="form-group">
                   <label>SN</label>
                   <input v-model="editingTool.sn" type="text" class="form-control" />
@@ -247,63 +261,84 @@ onMounted(() => {
                   <input v-model="editingTool.location" type="text" class="form-control" />
                 </div>
               </div>
+            </div>
+
+            <!-- Criticality -->
+            <div class="row">
+              <div class="col-12">
+                <h6 class="font-weight-bold mb-3 mt-3 text-secondary">
+                  <small>CRITICALITY</small>
+                </h6>
+              </div>
               <div class="col-md-6">
                 <div class="form-group">
-                  <label>Criticality - Product (Y/N)</label>
+                  <label>Product (Y/N)</label>
                   <input v-model="editingTool.crit_product" type="text" class="form-control" maxlength="1" />
                 </div>
                 <div class="form-group">
-                  <label>Criticality - Process (Y/N)</label>
+                  <label>Safety (Y/N)</label>
+                  <input v-model="editingTool.crit_safety" type="text" class="form-control" maxlength="1" />
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label>Process (Y/N)</label>
                   <input v-model="editingTool.crit_process" type="text" class="form-control" maxlength="1" />
                 </div>
                 <div class="form-group">
-                  <label>Criticality - Safety (Y/N)</label>
-                  <input v-model="editingTool.crit_safety" type="text" class="form-control" maxlength="1" />
-                </div>
-                <div class="form-group">
-                  <label>Criticality - Environment (Y/N)</label>
+                  <label>Environment (Y/N)</label>
                   <input v-model="editingTool.crit_env" type="text" class="form-control" maxlength="1" />
                 </div>
+              </div>
+            </div>
+
+            <!-- Preventive Maintenance -->
+            <div class="row">
+              <div class="col-12">
+                <h6 class="font-weight-bold mb-3 mt-3 text-secondary">
+                  <small>PREVENTIVE MAINTENANCE</small>
+                </h6>
+              </div>
+              <div class="col-md-6">
                 <div class="form-group">
-                  <label>PM Overall (Y/N)</label>
+                  <label>Overall (Y/N)</label>
                   <input v-model="editingTool.pm_overall" type="text" class="form-control" maxlength="1" />
                 </div>
                 <div class="form-group">
-                  <label>PM 6 Monthly</label>
+                  <label>Yearly</label>
+                  <input v-model="editingTool.pm_yearly" type="text" class="form-control" />
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label>6 Monthly</label>
                   <input v-model="editingTool.pm_6monthly" type="text" class="form-control" />
                 </div>
                 <div class="form-group">
-                  <label>PM Yearly</label>
-                  <input v-model="editingTool.pm_yearly" type="text" class="form-control" />
-                </div>
-                <div class="form-group">
-                  <label>PM Internal/External</label>
+                  <label>Internal/External</label>
                   <input v-model="editingTool.pm_internal_external" type="text" class="form-control" />
                 </div>
+              </div>
+            </div>
+
+            <!-- Calibration -->
+            <div class="row">
+              <div class="col-12">
+                <h6 class="font-weight-bold mb-3 mt-3 text-secondary">
+                  <small>CALIBRATION</small>
+                </h6>
+              </div>
+              <div class="col-md-6">
                 <div class="form-group">
-                  <label>Calibration (Y/N)</label>
+                  <label>Required (Y/N)</label>
                   <input v-model="editingTool.calib_yesno" type="text" class="form-control" maxlength="1" />
                 </div>
+              </div>
+              <div class="col-md-6">
                 <div class="form-group">
-                  <label>Calibration Schedule</label>
+                  <label>Schedule</label>
                   <input v-model="editingTool.calib_schedule" type="text" class="form-control" />
                 </div>
-                <!-- <div class="form-group">
-                  <label>Status PM</label>
-                  <select v-model="editingTool.status_pm" class="form-control">
-                    <option value="">-- Pilih Status --</option>
-                    <option value="Selesai">Selesai</option>
-                    <option value="Belum">Belum</option>
-                  </select>
-                </div>
-                <div class="form-group">
-                  <label>Status Calibration</label>
-                  <select v-model="editingTool.status_calibration" class="form-control">
-                    <option value="">-- Pilih Status --</option>
-                    <option value="Selesai">Selesai</option>
-                    <option value="Belum">Belum</option>
-                  </select>
-                </div> -->
               </div>
             </div>
           </div>
@@ -311,7 +346,7 @@ onMounted(() => {
             <button 
               type="button" 
               class="btn btn-secondary" 
-              data-dismiss="modal"
+              @click="closeModal"
               :disabled="isSaving"
             >
               Batal
@@ -327,7 +362,7 @@ onMounted(() => {
                 Menyimpan...
               </span>
               <span v-else>
-                {{ editingTool.no ? 'Simpan Perubahan' : 'Tambah Alat' }}
+                {{ saveButtonText }}
               </span>
             </button>
           </div>
@@ -342,7 +377,7 @@ onMounted(() => {
 .daftar-alat-table thead th {
   vertical-align: middle;
   font-weight: 600;
-  background-color: #f8f9fa;
+  background-color: #f2f7fc;
 }
 
 .daftar-alat-table thead tr:first-child th {
@@ -375,5 +410,23 @@ onMounted(() => {
 .daftar-alat-table th:nth-child(2),
 .daftar-alat-table td:nth-child(2) {
   min-width: 120px;
+}
+
+/* Modal scrollable styling */
+.modal-dialog {
+  max-height: calc(100vh - 2rem);
+  display: flex;
+}
+
+.modal-content {
+  max-height: calc(100vh - 2rem);
+  display: flex;
+  flex-direction: column;
+}
+
+.modal-body {
+  max-height: calc(100vh - 200px);
+  overflow-y: auto;
+  flex: 1;
 }
 </style>

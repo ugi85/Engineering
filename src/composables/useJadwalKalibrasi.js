@@ -91,21 +91,13 @@ export function useJadwalKalibrasi() {
     isSaving.value = true
     try {
       const result = await jadwalKalibrasiApi.saveJadwal(jadwal)
-      
-      // ⛔ Buang cache lama
       localStorage.removeItem(CACHE_KEY)
-
-      // ⛔ Paksa ambil data terbaru dari server
-      await fetchList(true)
-      
-      Swal.fire(
-        'Berhasil!',
-        `Jadwal berhasil ${jadwal.no ? 'diupdate' : 'ditambahkan'}`,
-        'success'
-      )
+      await fetchList(true) // ✅ fetchList handle initDataTable
+      Swal.fire('Berhasil!', `Jadwal berhasil ${jadwal.no ? 'diupdate' : 'ditambahkan'}`, 'success')
       return result
     } catch (error) {
       console.error('Gagal simpan jadwal:', error)
+      // ... penanganan error timeout ...
       Swal.fire('Error!', error.message || 'Gagal menyimpan data jadwal', 'error')
     } finally {
       isSaving.value = false
@@ -129,44 +121,24 @@ export function useJadwalKalibrasi() {
 
     isDeleting.value = true
     try {
-      console.log('[DEBUG] Memulai hapus jadwal dengan no:', no)
-
       const result = await jadwalKalibrasiApi.deleteJadwal(no)
-
-      console.log('[DEBUG] Respons API delete:', result)
-
       if (!result || !result.success) {
         throw new Error(result?.message || 'Respons tidak valid dari server')
       }
 
-      // ⚡ Optimistic update: langsung hilangkan di UI
-      refJadwal.value = refJadwal.value.filter((j) => String(j.no) !== String(no))
-
-      // Buang cache lama
+      // Optimistic update
+      refJadwal.value = refJadwal.value.filter(j => String(j.no) !== String(no))
       localStorage.removeItem(CACHE_KEY)
-
-      // Ambil ulang dari server
-      await fetchList(true)
+      await fetchList(true) // ✅ fetchList handle initDataTable
       
       Swal.fire('Berhasil!', 'Jadwal berhasil dihapus', 'success')
       return result
-
     } catch (error) {
-      console.error('[ERROR] Gagal menghapus jadwal:', {
-        no,
-        error: error.message,
-        stack: error.stack,
-        originalError: error
-      })
-
-      Swal.fire(
-        'Gagal Menghapus!',
-        error.message || 'Terjadi kesalahan saat menghapus data',
-        'error'
-      )
+      console.error('[ERROR] Gagal menghapus jadwal:', error)
+      // ... penanganan error ...
+      Swal.fire('Gagal Menghapus!', error.message || 'Terjadi kesalahan', 'error')
     } finally {
       isDeleting.value = false
-      console.log('[DEBUG] Proses hapus selesai')
     }
   }
 

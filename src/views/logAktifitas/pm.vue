@@ -345,7 +345,7 @@ onMounted(() => {
 }
 
 .table thead th { 
-  background-color: #f8f9fa; 
+  background-color: #f0f4f7; 
   font-weight: 600; 
 }
 

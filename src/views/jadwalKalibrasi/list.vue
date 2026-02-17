@@ -1,6 +1,7 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch, computed } from 'vue'
 import { useJadwalKalibrasi } from '@/composables/useJadwalKalibrasi'
+import { useDaftarAlat } from '@/composables/useDaftarAlat'
 
 // ✅ Ambil semua fungsi CRUD
 const { 
@@ -12,8 +13,11 @@ const {
   isSaving 
 } = useJadwalKalibrasi()
 
-// State untuk modal
-const editingJadwal = ref({
+// Ambil daftar alat untuk menampilkan opsi No.ID di modal
+const { tools: daftarAlat, loading: loadingAlat, fetchList: fetchDaftarAlat } = useDaftarAlat()
+
+// Template untuk field form
+const getEmptyJadwal = () => ({
   no: '',
   no_id: '',
   description: '',
@@ -27,29 +31,62 @@ const editingJadwal = ref({
   criticality: ''
 })
 
+// State untuk modal
+const isModalOpen = ref(false)
+const isEditMode = ref(false)
+const editingJadwal = ref(getEmptyJadwal())
+
+// Computed untuk judul modal
+const modalTitle = computed(() =>
+  isEditMode.value ? 'Edit Jadwal Kalibrasi' : 'Tambah Jadwal Kalibrasi'
+)
+
+// Computed untuk text tombol simpan
+const saveButtonText = computed(() =>
+  isEditMode.value ? 'Simpan Perubahan' : 'Tambah Jadwal'
+)
+
+// Isi description otomatis ketika user memilih no_id dari daftarAlat
+watch(
+  () => editingJadwal.value.no_id,
+  (newNoId) => {
+    if (!newNoId) {
+      editingJadwal.value.description = ''
+      return
+    }
+    const found = (daftarAlat.value || []).find((t) => String(t.no_id) === String(newNoId))
+    if (found) {
+      editingJadwal.value.description = found.description || ''
+    }
+  }
+)
+
 const refresh = () => fetchList()
 
 // ✅ Fungsi Tambah
-const openCreateModal = () => {
-  editingJadwal.value = {
-    no: '',
-    no_id: '',
-    description: '',
-    cal_id: '',
-    parameter: '',
-    process_range: '',
-    reject_error: '',
-    interval: '',
-    due_date: '',
-    remark: '',
-    criticality: ''
+const openCreateModal = async () => {
+  // pastikan daftar alat sudah dimuat supaya select langsung terisi
+  if (!daftarAlat.value || !daftarAlat.value.length) {
+    await fetchDaftarAlat()
   }
-  $('#editJadwalModalLabel').text('Tambah Jadwal Kalibrasi')
-  $('#editJadwalModal').modal('show')
+  editingJadwal.value = getEmptyJadwal()
+  isEditMode.value = false
+  isModalOpen.value = true
 }
 
 // ✅ Fungsi Edit
-const openEditModal = (jadwal) => {
+const openEditModal = async (jadwal) => {
+  // pastikan daftar alat terisi dulu agar select dapat menampilkan nilai terpilih
+  if (!daftarAlat.value || !daftarAlat.value.length) {
+    await fetchDaftarAlat()
+  }
+
+  // jika no_id yang ingin dipilih belum ada di daftar, coba fetch paksa
+  const exists = (daftarAlat.value || []).some((t) => String(t.no_id) === String(jadwal.no_id))
+  if (jadwal.no_id && !exists) {
+    await fetchDaftarAlat(true)
+  }
+
   editingJadwal.value = {
     no: jadwal.no || '',
     no_id: jadwal.no_id || '',
@@ -63,20 +100,24 @@ const openEditModal = (jadwal) => {
     remark: jadwal.remark || '',
     criticality: jadwal.criticality || ''
   }
-  $('#editJadwalModalLabel').text('Edit Jadwal Kalibrasi')
-  $('#editJadwalModal').modal('show')
+  isEditMode.value = true
+  isModalOpen.value = true
+}
+
+// Tutup modal
+const closeModal = () => {
+  isModalOpen.value = false
+  editingJadwal.value = getEmptyJadwal()
+  isEditMode.value = false
 }
 
 // ✅ Fungsi Simpan (Create/Update)
 const saveEditingJadwal = async () => {
-  isSaving.value = true
   try {
     await saveJadwal(editingJadwal.value)
-    $('#editJadwalModal').modal('hide')
+    closeModal()
   } catch (error) {
     console.error('Gagal menyimpan:', error)
-  } finally {
-    isSaving.value = false
   }
 }
 
@@ -87,6 +128,7 @@ const handleDelete = (no) => {
 
 onMounted(() => {
   fetchList()
+  fetchDaftarAlat()
 })
 </script>
 
@@ -97,10 +139,10 @@ onMounted(() => {
       <div class="container-fluid d-flex justify-content-between align-items-start">
         <div>
           <h1 class="mb-0">Jadwal Kalibrasi</h1>
-          <small class="text-muted">No Reff: AGIS-WI-ENG-016-LD1</small>
+          <small class="text-muted">No Reff: AGIS-WI-ENG-016-LD1_v5.0</small>
         </div>
-        <button class="btn btn-primary" @click="openCreateModal">
-          <i class="fas fa-plus mr-1"></i>Tambah Jadwal
+        <button class="btn btn-info" @click="openCreateModal">
+          Tambah Jadwal
         </button>
       </div>
     </section>
@@ -172,64 +214,124 @@ onMounted(() => {
     </section>
 
     <!-- ✅ Modal Create/Edit -->
-    <div class="modal fade" id="editJadwalModal" tabindex="-1">
-      <div class="modal-dialog">
+    <div 
+      v-if="isModalOpen"
+      class="modal fade show" 
+      tabindex="-1"
+      style="display: block; background-color: rgba(0, 0, 0, 0.5);"
+    >
+      <div class="modal-dialog modal-lg">
         <div class="modal-content">
           <div class="modal-header">
-            <h5 class="modal-title" id="editJadwalModalLabel">Edit Jadwal Kalibrasi</h5>
-            <button type="button" class="close" data-dismiss="modal">&times;</button>
+            <h5 class="modal-title">{{ modalTitle }}</h5>
+            <button 
+              type="button" 
+              class="close" 
+              @click="closeModal"
+              :disabled="isSaving"
+            >
+              &times;
+            </button>
           </div>
           <div class="modal-body">
-            <div v-if="editingJadwal.no" class="form-group">
-              <label>No.</label>
-              <input v-model="editingJadwal.no" type="text" class="form-control" readonly />
+            <!-- Identitas Alat -->
+            <div class="row">
+              <div class="col-md-6">
+                <div v-if="editingJadwal.no" class="form-group">
+                  <label>No.</label>
+                  <input v-model="editingJadwal.no" type="text" class="form-control" readonly />
+                </div>
+                <div class="form-group">
+                  <label>No. ID <span class="text-danger">*</span></label>
+                  <select v-model="editingJadwal.no_id" class="form-control">
+                    <option value="">Pilih No.ID</option>
+                    <option
+                      v-for="t in daftarAlat"
+                      :key="t.no_id"
+                      :value="t.no_id"
+                    >
+                      {{ t.no_id }}
+                    </option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label>Description</label>
+                  <input v-model="editingJadwal.description" type="text" class="form-control" readonly />
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label>Calibration ID</label>
+                  <input v-model="editingJadwal.cal_id" type="text" class="form-control" />
+                </div>
+                <div class="form-group">
+                  <label>Criticality</label>
+                  <input v-model="editingJadwal.criticality" type="text" class="form-control" />
+                </div>
+              </div>
             </div>
-            <div class="form-group">
-              <label>No. ID</label>
-              <input v-model="editingJadwal.no_id" type="text" class="form-control" />
+
+            <!-- Specification -->
+            <div class="row">
+              <div class="col-12">
+                <h6 class="font-weight-bold mb-3 mt-3 text-secondary">
+                  <small>SPECIFICATION</small>
+                </h6>
+              </div>
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label>Parameter</label>
+                  <input v-model="editingJadwal.parameter" type="text" class="form-control" />
+                </div>
+                <div class="form-group">
+                  <label>Process Range</label>
+                  <input v-model="editingJadwal.process_range" type="text" class="form-control" />
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label>Reject Error</label>
+                  <input v-model="editingJadwal.reject_error" type="text" class="form-control" />
+                </div>
+              </div>
             </div>
-            <div class="form-group">
-              <label>Description</label>
-              <input v-model="editingJadwal.description" type="text" class="form-control" />
+
+            <!-- Schedule -->
+            <div class="row">
+              <div class="col-12">
+                <h6 class="font-weight-bold mb-3 mt-3 text-secondary">
+                  <small>SCHEDULE</small>
+                </h6>
+              </div>
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label>Interval</label>
+                  <input v-model="editingJadwal.interval" type="text" class="form-control" />
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label>Due Date</label>
+                  <input v-model="editingJadwal.due_date" type="text" class="form-control" />
+                </div>
+              </div>
             </div>
-            <div class="form-group">
-              <label>Calibration ID</label>
-              <input v-model="editingJadwal.cal_id" type="text" class="form-control" />
-            </div>
-            <div class="form-group">
-              <label>Parameter</label>
-              <input v-model="editingJadwal.parameter" type="text" class="form-control" />
-            </div>
-            <div class="form-group">
-              <label>Process Range</label>
-              <input v-model="editingJadwal.process_range" type="text" class="form-control" />
-            </div>
-            <div class="form-group">
-              <label>Reject Error</label>
-              <input v-model="editingJadwal.reject_error" type="text" class="form-control" />
-            </div>
-            <div class="form-group">
-              <label>Interval</label>
-              <input v-model="editingJadwal.interval" type="text" class="form-control" />
-            </div>
-            <div class="form-group">
-              <label>Due Date</label>
-              <input v-model="editingJadwal.due_date" type="text" class="form-control" />
-            </div>
-            <div class="form-group">
-              <label>Remark</label>
-              <input v-model="editingJadwal.remark" type="text" class="form-control" />
-            </div>
-            <div class="form-group">
-              <label>Criticality</label>
-              <input v-model="editingJadwal.criticality" type="text" class="form-control" />
+
+            <!-- Remarks -->
+            <div class="row">
+              <div class="col-12">
+                <div class="form-group">
+                  <label>Remark</label>
+                  <textarea v-model="editingJadwal.remark" class="form-control" rows="3"></textarea>
+                </div>
+              </div>
             </div>
           </div>
           <div class="modal-footer">
             <button 
               type="button" 
               class="btn btn-secondary" 
-              data-dismiss="modal"
+              @click="closeModal"
               :disabled="isSaving"
             >
               Batal
@@ -245,7 +347,7 @@ onMounted(() => {
                 Menyimpan...
               </span>
               <span v-else>
-                {{ editingJadwal.no ? 'Simpan Perubahan' : 'Tambah Jadwal' }}
+                {{ saveButtonText }}
               </span>
             </button>
           </div>
@@ -260,7 +362,7 @@ onMounted(() => {
 .jadwal-kalibrasi-table thead th {
   vertical-align: middle;
   font-weight: 600;
-  background-color: #f8f9fa;
+  background-color: #f2f7fc;
 }
 .jadwal-kalibrasi-table th,
 .jadwal-kalibrasi-table td {
@@ -270,45 +372,22 @@ onMounted(() => {
 .jadwal-kalibrasi-table .text-center {
   text-align: center;
 }
+
+/* Modal scrollable styling */
+.modal-dialog {
+  max-height: calc(100vh - 2rem);
+  display: flex;
+}
+
+.modal-content {
+  max-height: calc(100vh - 2rem);
+  display: flex;
+  flex-direction: column;
+}
+
+.modal-body {
+  max-height: calc(100vh - 200px);
+  overflow-y: auto;
+  flex: 1;
+}
 </style>
-
-<!-- <style scoped>
-/* Header styling */
-.daftar-alat-table thead th {
-  vertical-align: middle;
-  font-weight: 600;
-  background-color: #f8f9fa;
-}
-
-.daftar-alat-table thead tr:first-child th {
-  padding: 0.75rem;
-}
-
-.daftar-alat-table thead tr:nth-child(2) th {
-  font-size: 0.85rem;
-  padding: 0.4rem 0.5rem;
-}
-
-/* Konten tabel */
-.daftar-alat-table th,
-.daftar-alat-table td {
-  white-space: nowrap;
-  padding: 0.5rem;
-}
-
-/* Kolom centered */
-.daftar-alat-table .text-center {
-  text-align: center;
-}
-
-/* Lebar minimum untuk kolom penting (opsional) */
-.daftar-alat-table th:first-child,
-.daftar-alat-table td:first-child {
-  min-width: 50px;
-}
-
-.daftar-alat-table th:nth-child(2),
-.daftar-alat-table td:nth-child(2) {
-  min-width: 120px;
-}
-</style> -->

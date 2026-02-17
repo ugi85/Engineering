@@ -3,8 +3,8 @@
     <!-- Brand Logo -->
     <!-- <a href="/" class="brand-link"> -->
       <RouterLink to="/dashChart" class="brand-link">
-      <img src="/img/ENG.png" alt="AdminLTE Logo" class="brand-image img-circle elevation-3" style="opacity: .8">
-      <span class="brand-text font-weight-light">Eng_Monitor</span>
+      <img src="/img/ENGwhite.png" alt="AdminLTE Logo" class="brand-image img-circle elevation-3" style="opacity: .8">
+      <span class="brand-text font-weight-light">EEHS_Dashboard</span>
     <!-- </a> -->
     </RouterLink>
 
@@ -38,13 +38,13 @@
           <!-- Add icons to the links using the .nav-icon class
                with font-awesome or any other icon font library -->
           <li class="nav-item menu-open">
-            <a href="#" class="nav-link active">
+            <!-- <a href="#" class="nav-link active">
               <i class="nav-icon fas fa-tachometer-alt"></i>
               <p>
                 Dashboard
                 <i class="right fas fa-angle-left"></i>
               </p>
-            </a>
+            </a> -->
             <ul class="nav nav-treeview">
              
               <!-- <li class="nav-item">
@@ -67,28 +67,28 @@
               </li> -->
               <li class="nav-item">
                 <RouterLink to="/dashChart" class="nav-link">
-                  <i class="far fa-circle nav-icon"></i>
+                  <i class="fas fa-tachometer-alt nav-icon"></i>
                   <p>Dashboard Chart</p>
                 </RouterLink>
               </li>
               <li class="nav-item">
                 <RouterLink to="/daftarAlat" class="nav-link">
-                  <i class="far fa-circle nav-icon"></i>
+                  <i class="fas fa-tools nav-icon"></i>
                   <p>Daftar Alat</p>
                 </RouterLink>
               </li>
               <li class="nav-item">
                 <RouterLink to="/jadwalKalibrasi" class="nav-link">
-                  <i class="far fa-circle nav-icon"></i>
+                  <i class="fas fa-balance-scale nav-icon"></i>
                   <p>Jadwal Kalibrasi</p>
                 </RouterLink>
               </li>
-              <li class="nav-item">
+              <!-- <li class="nav-item">
                 <RouterLink to="/chartMonitoring" class="nav-link">
                   <i class="far fa-circle nav-icon"></i>
                   <p>ChartMonitoring</p>
                 </RouterLink>
-              </li>
+              </li> -->
             </ul>
           </li>
 
@@ -111,6 +111,12 @@
                 <RouterLink to="/logPm" class="nav-link">
                   <i class="far fa-circle nav-icon"></i>
                   <p>Log PM</p>
+                </RouterLink>
+              </li>
+              <li class="nav-item">
+                <RouterLink to="/allAktivitas" class="nav-link">
+                  <i class="far fa-circle nav-icon"></i>
+                  <p>All Aktivitas</p>
                 </RouterLink>
               </li>
               

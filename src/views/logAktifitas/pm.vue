@@ -102,6 +102,15 @@ const handleSearch = async () => {
   }
 }
 
+const printDate = ref('')
+// print helper
+const handlePrint = () => {
+  if (!dataLoaded.value || logs.value.length === 0) return
+  const now = new Date()
+  printDate.value = `${now.getDate().toString().padStart(2,'0')}/${(now.getMonth()+1).toString().padStart(2,'0')}/${now.getFullYear()} ${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}`
+  window.print()
+}
+
 // ✅ PERBAIKAN UTAMA: SIMPAN LANGSUNG VIA API (TANPA LEWAT COMPOSABLE)
 const saveToLogAktivitas = async (row) => {
   if (!row.pic || !row.execute_date || !row.ket?.trim()) {
@@ -114,7 +123,7 @@ const saveToLogAktivitas = async (row) => {
     return
   }
 
-  const rowKey = `${row['No.ID']}_${row['Calibration Id.']}`
+  const rowKey = row['No.ID'] + '_' + row['Calibration Id.']
   if (savingRows.value.has(rowKey)) return
   
   savingRows.value.add(rowKey) // ✅ HANYA BLOCK BUTTON INI
@@ -175,12 +184,12 @@ onMounted(() => {
       <div class="container-fluid">
         <div class="d-flex justify-content-between align-items-center mb-3">
           <h1 class="mb-0">Data Log Preventive Maintenance (PM)</h1>
-          <span class="badge badge-info">
+          <span class="badge badge-info no-print">
             Total: {{ logs.length }} data
           </span>
         </div>
         
-        <div class="row">
+        <div class="row no-print align-items-end">
           <div class="col-md-3">
             <label class="font-weight-bold mb-2">Pilih Bulan:</label>
             <select v-model="selectedMonth" class="form-control" :disabled="loading">
@@ -202,10 +211,20 @@ onMounted(() => {
           </div>
           
           <div class="col-md-2 d-flex align-items-end">
-            <button @click="handleSearch" :disabled="!selectedMonth || !selectedYear || loading" class="btn btn-primary">
+            <button @click="handleSearch" :disabled="!selectedMonth || !selectedYear || loading" class="btn btn-secondary">
               <i class="fas fa-search mr-1"></i>
               <span v-if="loading">Loading...</span>
               <span v-else>Cari Data</span>
+            </button>
+          </div>
+          <div class="col-md-5 d-flex align-items-end justify-content-end">
+            <button
+              class="btn btn-primary"
+              :disabled="!dataLoaded || logs.length === 0"
+              @click="handlePrint"
+              title="Cetak halaman"
+            >
+              <i class="fas fa-print mr-1"></i>Print
             </button>
           </div>
         </div>
@@ -214,6 +233,19 @@ onMounted(() => {
 
     <section class="content">
       <div class="container-fluid">
+        <!-- print header info -->
+        <div class="print-header d-none">
+          <div class="company-logo">AGIS</div>
+          <div class="company-name">PT. AGIS INSTRUMENT SERVICES</div>
+          <div class="company-address">Jl. Raya Industri No. 123, Kawasan Industri MM2100</div>
+          <div class="company-address">Cikarang Barat, Bekasi 17520 - Indonesia</div>
+          <div class="company-address">Telp: (021) 897-1234 | Email: info@agis.co.id</div>
+          <h1 class="report-title">LAPORAN LOG PM</h1>
+          <div class="report-subtitle">No. Reff: AGIS-WI-ENG-016-LD1_v5.0</div>
+          <div class="report-period">
+            Periode: {{ selectedMonth }} {{ selectedYear }}
+          </div>
+        </div>
         <div class="card">
           <div class="card-body">
             <div v-if="!dataLoaded" class="text-center py-5">
@@ -244,7 +276,7 @@ onMounted(() => {
                     </tr>  
                   </thead>
                   <tbody>
-                    <tr v-for="(row, index) in logs" :key="`pm-${index}`" :class="{'table-success': row.status === 'Selesai'}">
+                    <tr v-for="(row, index) in logs" :key="'pm-' + index" :class="{'table-success': row.status === 'Selesai'}">
                       <td class="text-center">{{ index + 1 }}</td>
                       <td>{{ row['No.ID'] }}</td>
                       <td>{{ row.Description }}</td>
@@ -298,16 +330,16 @@ onMounted(() => {
                         <button 
                           v-if="row.status === 'Belum'" 
                           @click="saveToLogAktivitas(row)"
-                          :disabled="!row.pic || !row.execute_date || !row.ket?.trim() || savingRows.has(`${row['No.ID']}_${row['Calibration Id.']}`)"
+                          :disabled="!row.pic || !row.execute_date || !row.ket?.trim() || savingRows.has(row['No.ID'] + '_' + row['Calibration Id.'])"
                           :class="[
                             'btn btn-sm',
-                            savingRows.has(`${row['No.ID']}_${row['Calibration Id.']}`) 
+                            savingRows.has(row['No.ID'] + '_' + row['Calibration Id.']) 
                               ? 'btn-success' 
                               : 'btn-warning'
                           ]"
                           type="button"
                         >
-                          <span v-if="savingRows.has(`${row['No.ID']}_${row['Calibration Id.']}`)">
+                          <span v-if="savingRows.has(row['No.ID'] + '_' + row['Calibration Id.'])">
                             <span class="spinner-border spinner-border-sm mr-1"></span>
                             Menyimpan...
                           </span>
@@ -322,6 +354,15 @@ onMounted(() => {
                     </tr>
                   </tbody>
                 </table>
+              </div>
+              <!-- print footer -->
+              <div class="print-footer d-none">
+                <div class="footer-timestamp">Dicetak pada: {{ printDate }}</div>
+                <div class="footer-page">Halaman 1 dari 1</div>
+                <div class="footer-disclaimer">
+                  Dokumen ini dihasilkan secara otomatis oleh sistem QMS AGIS. 
+                  Setiap perubahan harus melalui prosedur kontrol dokumen yang berlaku.
+                </div>
               </div>
             </div>
 
@@ -429,5 +470,75 @@ onMounted(() => {
 
 .form-control-sm.text-center {
   text-align: center;
+}
+
+/* print-specific helpers */
+@media print {
+  /* landscape orientation */
+  @page {
+    size: landscape;
+    margin: 10mm;
+  }
+  .no-print {
+    display: none !important;
+  }
+  .table-responsive {
+    overflow: visible !important;
+  }
+  .print-header.d-none {
+    display: block !important;
+  }
+  .print-header {
+    text-align: center;
+    margin-bottom: 20px;
+  }
+  .print-header .company-logo {
+    font-size: 28px;
+    font-weight: bold;
+    color: #003366;
+  }
+  .print-header .company-name {
+    font-size: 24px;
+    font-weight: bold;
+    color: #003366;
+  }
+  .print-header .company-address {
+    font-size: 12px;
+    color: #555;
+    line-height: 1.3;
+  }
+  .print-header .report-title {
+    margin-top: 10px;
+    font-size: 22px;
+    color: #0056b3;
+    font-weight: bold;
+  }
+  .print-header .report-subtitle,
+  .print-header .report-period {
+    font-size: 14px;
+    color: #666;
+  }
+
+  /* footer styling */
+  .print-footer {
+    text-align: center;
+    margin-top: 30px;
+    font-size: 12px;
+    color: #666;
+  }
+  .print-footer .footer-timestamp {
+    font-weight: 500;
+    color: #0056b3;
+    margin-bottom: 5px;
+  }
+  .print-footer .footer-page {
+    margin-top: 3px;
+  }
+  .print-footer .footer-disclaimer {
+    margin-top: 15px;
+    font-style: italic;
+    color: #888;
+    font-size: 11px;
+  }
 }
 </style>

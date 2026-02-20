@@ -3,8 +3,8 @@
     <!-- Brand Logo -->
     <!-- <a href="/" class="brand-link"> -->
       <RouterLink to="/dashChart" class="brand-link">
-      <img src="/img/ENGwhite.png" alt="AdminLTE Logo" class="brand-image img-circle elevation-3" style="opacity: .8">
-      <span class="brand-text font-weight-light">EEHS_Dashboard</span>
+      <img :key="logoKey" :src="logoUrl" :alt="systemName + ' Logo'" class="brand-image img-circle elevation-3" style="opacity: .8">
+      <span class="brand-text font-weight-light">{{ systemName }}</span>
     <!-- </a> -->
     </RouterLink>
 
@@ -122,6 +122,12 @@
               
             </ul>
           </li>
+           <li class="nav-item">
+                <RouterLink to="/configurasi" class="nav-link">
+                  <i class="fas fa-cogs nav-icon"></i>
+                  <p> Settings</p>
+                </RouterLink>
+              </li>
           <!-- <li class="nav-item">
             <RouterLink to="/widgets" class="nav-link">
               <i class="nav-icon fas fa-th"></i>
@@ -734,10 +740,19 @@
 </template>
 
 <script setup>
-import { onMounted } from 'vue'
+import { onMounted, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
+import { useFrontendConfig } from '@/composables/useConfig'
 
 const router = useRouter()
+const { config, previewLogo } = useFrontendConfig()
+const systemName = computed(() => config.value.systemName)
+const logoUrl = computed(() => config.value.logoDataUrl || '/img/ENGwhite.png')
+
+// ✅ Key unik untuk memaksa Vue me-reload img element saat logo berubah
+const logoKey = computed(() => {
+  return logoUrl.value.length
+})
 
 /**
  * ✅ Tutup sidebar otomatis setelah navigasi pada mobile

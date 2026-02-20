@@ -2,6 +2,7 @@
 import { ref, onMounted } from 'vue'
 import { useLogAktivitas } from '@/composables/useLogAktivitas'
 import { logAktivitasApi } from '@/api/logAktivitas' // ✅ IMPORT API LANGSUNG
+import { printService } from '@/services/printService'
 
 const { 
   loading, 
@@ -102,6 +103,19 @@ const handleSearch = async () => {
   }
 }
 
+// print helper – simple browser print of current view
+const printDate = ref('')
+const handlePrint = () => {
+  printService.printKalibrasiLogs(logs.value, selectedMonth.value, selectedYear.value)
+  if (!dataLoaded.value || logs.value.length === 0) return
+
+  // prepare header information
+  const now = new Date()
+  printDate.value = `${now.getDate().toString().padStart(2,'0')}/${(now.getMonth()+1).toString().padStart(2,'0')}/${now.getFullYear()} ${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}`
+
+  window.print()
+}
+
 // ✅ PERBAIKAN UTAMA: SIMPAN LANGSUNG VIA API (TANPA LEWAT COMPOSABLE)
 const saveToLogAktivitas = async (row) => {
   if (!row.pic || !row.execute_date || !row.ket?.trim()) {
@@ -175,12 +189,12 @@ onMounted(() => {
       <div class="container-fluid">
         <div class="d-flex justify-content-between align-items-center mb-3">
           <h1 class="mb-0">Data Log Kalibrasi</h1>
-          <span class="badge badge-info">
+          <span class="badge badge-info no-print">
             Total: {{ logs.length }} data
           </span>
         </div>
         
-        <div class="row">
+        <div class="row no-print">
           <div class="col-md-3">
             <label class="font-weight-bold mb-2">Pilih Bulan:</label>
             <select v-model="selectedMonth" class="form-control" :disabled="loading">
@@ -202,10 +216,20 @@ onMounted(() => {
           </div>
           
           <div class="col-md-2 d-flex align-items-end">
-            <button @click="handleSearch" :disabled="!selectedMonth || !selectedYear || loading" class="btn btn-primary">
+            <button @click="handleSearch" :disabled="!selectedMonth || !selectedYear || loading" class="btn btn-secondary">
               <i class="fas fa-search mr-1"></i>
               <span v-if="loading">Loading...</span>
               <span v-else>Cari Data</span>
+            </button>
+          </div>
+          <div class="col-md-5 d-flex align-items-end justify-content-end">
+            <button
+              class="btn btn-primary"
+              :disabled="!dataLoaded || logs.length === 0"
+              @click="handlePrint"
+              title="Cetak halaman"
+            >
+              <i class="fas fa-print mr-1"></i>Print
             </button>
           </div>
         </div>
@@ -214,6 +238,19 @@ onMounted(() => {
 
     <section class="content">
       <div class="container-fluid">
+        <!-- print-only big header -->
+        <div class="print-header d-none">
+          <div class="company-logo">AGIS</div>
+          <div class="company-name">PT. AGIS INSTRUMENT SERVICES</div>
+          <div class="company-address">Jl. Raya Industri No. 123, Kawasan Industri MM2100</div>
+          <div class="company-address">Cikarang Barat, Bekasi 17520 - Indonesia</div>
+          <div class="company-address">Telp: (021) 897-1234 | Email: info@agis.co.id</div>
+          <h1 class="report-title">LAPORAN LOG KALIBRASI</h1>
+          <div class="report-subtitle">No. Reff: AGIS-WI-ENG-016-LD1_v5.0</div>
+          <div class="report-period">
+            Periode: {{ selectedMonth }} {{ selectedYear }}
+          </div>
+        </div>
         <div class="card">
           <div class="card-body">
             <div v-if="!dataLoaded" class="text-center py-5">
@@ -431,5 +468,57 @@ onMounted(() => {
 
 .form-control-sm.text-center {
   text-align: center;
+}
+
+/* print-specific helpers */
+@media print {
+  /* request landscape orientation */
+  @page {
+    size: landscape;
+    margin: 10mm;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+  .table-responsive {
+    overflow: visible !important;
+  }
+  /* enlarge footer or adjust spacing if needed */
+
+  /* show custom header when printing */
+  .print-header.d-none {
+    display: block !important;
+  }
+  .print-header {
+    text-align: center;
+    margin-bottom: 20px;
+  }
+  .print-header .company-logo {
+    font-size: 28px;
+    font-weight: bold;
+    color: #003366;
+  }
+  .print-header .company-name {
+    font-size: 24px;
+    font-weight: bold;
+    color: #003366;
+  }
+  .print-header .company-address {
+    font-size: 12px;
+    color: #555;
+    line-height: 1.3;
+  }
+  .print-header .report-title {
+    margin-top: 10px;
+    font-size: 22px;
+    color: #0056b3;
+    font-weight: bold;
+  }
+  .print-header .report-subtitle,
+  .print-header .report-period {
+    font-size: 14px;
+    color: #666;
+  }
 }
 </style>

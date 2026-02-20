@@ -1,8 +1,10 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue'
 import { useDaftarAlat } from '@/composables/useDaftarAlat'
+import { useFrontendConfig } from '@/composables/useConfig'
 
 const { tools, loading, fetchList, saveTool, isSaving, deleteTool } = useDaftarAlat()
+const { config } = useFrontendConfig()
 
 // Template untuk field form
 const getEmptyTool = () => ({
@@ -41,6 +43,11 @@ const modalTitle = computed(() =>
 const saveButtonText = computed(() =>
   isEditMode.value ? 'Simpan Perubahan' : 'Tambah Alat'
 )
+
+// ✅ DYNAMIC REFERENCE
+const documentRefEquipment = computed(() => {
+  return config.value.documentRefEquipment
+})
 
 // Refresh data
 const refresh = () => fetchList()
@@ -113,7 +120,8 @@ onMounted(() => {
       <div class="container-fluid d-flex justify-content-between align-items-start">
         <div>
           <h1 class="mb-0">Daftar Alat & Perawatan</h1>
-          <small class="text-muted">No Reff: AGIS-WI-ENG-001-LD1_v5.0</small>
+          <!-- <small class="text-muted">No Reff: AGIS-WI-ENG-001-LD1_v5.0</small><br> -->
+           <small class="text-muted">No Reff: {{ documentRefEquipment }}</small>
         </div>
         <button class="btn btn-info" @click="openCreateModal">
           Tambah Alat

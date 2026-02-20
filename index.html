@@ -2,9 +2,43 @@
 <html lang="">
   <head>
     <meta charset="UTF-8">
-    <link rel="icon" href="/favicon.ico">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>EEHS Dashboard</title>
+
+    <!-- ✅ Script untuk menerapkan favicon dari konfigurasi -->
+    <script>
+      (function() {
+        try {
+          const configStr = localStorage.getItem('qms_frontend_config_v2')
+          console.log('Config from localStorage:', configStr)
+          if (configStr) {
+            const parsed = JSON.parse(configStr)
+            console.log('Parsed config:', parsed)
+            if (parsed.faviconDataUrl) {
+              console.log('Favicon data URL found:', parsed.faviconDataUrl)
+              // Hapus link favicon lama jika ada
+              const oldLink = document.querySelector("link[rel~='icon']")
+              if (oldLink) {
+                oldLink.remove()
+              }
+              // Buat link favicon baru dengan data URL dari config
+              const link = document.createElement('link')
+              link.rel = 'icon'
+              link.type = 'image/png'
+              link.href = parsed.faviconDataUrl
+              document.head.appendChild(link)
+              console.log('Favicon applied from config')
+            } else {
+              console.log('No favicon data URL in config')
+            }
+          } else {
+            console.log('No config found in localStorage')
+          }
+        } catch (e) {
+          console.error('Gagal memuat favicon dari konfigurasi:', e)
+        }
+      })()
+    </script>
     
   <!-- Google Font: Source Sans Pro -->
   <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700&display=fallback">

@@ -2,6 +2,7 @@
 <html lang="">
   <head>
     <meta charset="UTF-8">
+    <link rel="icon" href="/favicon.ico">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>EEHS Dashboard</title>
 
@@ -9,30 +10,15 @@
     <script>
       (function() {
         try {
-          const configStr = localStorage.getItem('qms_frontend_config_v2')
-          console.log('Config from localStorage:', configStr)
-          if (configStr) {
-            const parsed = JSON.parse(configStr)
-            console.log('Parsed config:', parsed)
+          const config = localStorage.getItem('qms_frontend_config_v2')
+          if (config) {
+            const parsed = JSON.parse(config)
             if (parsed.faviconDataUrl) {
-              console.log('Favicon data URL found:', parsed.faviconDataUrl)
-              // Hapus link favicon lama jika ada
-              const oldLink = document.querySelector("link[rel~='icon']")
-              if (oldLink) {
-                oldLink.remove()
+              const link = document.querySelector("link[rel~='icon']")
+              if (link) {
+                link.href = parsed.faviconDataUrl
               }
-              // Buat link favicon baru dengan data URL dari config
-              const link = document.createElement('link')
-              link.rel = 'icon'
-              link.type = 'image/png'
-              link.href = parsed.faviconDataUrl
-              document.head.appendChild(link)
-              console.log('Favicon applied from config')
-            } else {
-              console.log('No favicon data URL in config')
             }
-          } else {
-            console.log('No config found in localStorage')
           }
         } catch (e) {
           console.error('Gagal memuat favicon dari konfigurasi:', e)

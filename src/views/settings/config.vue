@@ -246,7 +246,7 @@
                 </div>
                 <small class="form-text text-muted mt-2">
                   Format: PNG, JPG | Maks: 100KB<br>
-                  Logo disimpan di browser Anda (tidak dikirim ke server)<br>
+                  Logo disimpan di server (Vercel Blob) dan dapat dilihat semua pengguna<br>
                   <strong>Favicon akan otomatis dibuat dari logo</strong>
                 </small>
                 <div class="mt-3 text-center">
@@ -258,7 +258,7 @@
                 <button
                   @click="removeLogo"
                   class="btn btn-sm btn-outline-danger mt-3"
-                  :disabled="!config.logoDataUrl"
+                  :disabled="!config.logoUrl && !config.logoDataUrl"
                 >
                   <i class="fas fa-trash mr-1"></i>Hapus Logo
                 </button>
@@ -276,8 +276,8 @@
                 </div>
               </div>
               <div class="card-body">
-                <div 
-                  class="print-preview" 
+                <div
+                  class="print-preview"
                   :style="{
                     fontFamily: draft.print.fontFamily,
                     padding: draft.print.margin,
@@ -286,32 +286,82 @@
                     boxSizing: 'border-box'
                   }"
                 >
-                  <div class="preview-header" :style="{ height: draft.print.headerHeight }">
-                    <div class="preview-logo" v-if="draft.print.showLogo">
-                      <img :src="draftLogo || getLogoUrl" alt="Logo" style="max-height: 40px; max-width: 150px;">
+                  <!-- Header Print dengan format baru -->
+                  <div class="preview-header-new" :style="{ height: draft.print.headerHeight }">
+                    <!-- Baris 1: Nama Perusahaan (Center) -->
+                    <div class="preview-company-name" :style="{ 
+                      textAlign: 'center', 
+                      fontSize: '18px', 
+                      fontWeight: 'bold',
+                      marginBottom: '5px'
+                    }">
+                      {{ draft.companyName }}
                     </div>
-                    <div class="preview-company">
-                      <div class="preview-name" :style="{ color: '#003366', fontSize: '24px', fontWeight: 'bold' }">
-                        {{ draft.companyName }}
+                    
+                    <!-- Baris 2: Judul Dokumen (Left) & Nomor Dokumen (Right) -->
+                    <div class="preview-doc-info" style="display: flex; justify-content: space-between; margin-bottom: '5px'">
+                      <div class="preview-doc-title" :style="{ 
+                        fontSize: '14px', 
+                        fontWeight: 'bold',
+                        flex: '1'
+                      }">
+                        Judul Dokumen : Daftar Peralatan dan Jadwal Perawatannya
                       </div>
-                      <div 
-                        class="preview-address" 
-                        v-if="draft.print.showAddress"
-                        v-html="getFullAddress"
-                        style="font-size: 14px; color: #555; line-height: 1.4; margin-top: 5px;"
-                      ></div>
+                      <div class="preview-doc-number" :style="{ 
+                        fontSize: '14px',
+                        textAlign: 'right'
+                      }">
+                        Nomor Dokumen : {{ draft.documentRefEquipment }}
+                      </div>
                     </div>
-                    <div 
-                      class="preview-ref" 
-                      v-if="draft.print.showDocumentRef"
-                      :style="{ 
-                        fontSize: '16px', 
-                        fontWeight: 'bold', 
-                        color: '#0056b3',
-                        marginTop: '10px'
-                      }"
-                    >
-                      No. Reff: {{ draft.documentRef }}
+                    
+                    <!-- Baris 3: Tabel Header (jika diperlukan untuk preview) -->
+                    <div class="preview-table-header" :style="{ 
+                      fontSize: '10px',
+                      borderTop: '1px solid #000',
+                      borderBottom: '1px solid #000',
+                      padding: '3px 0'
+                    }">
+                      <table style="width: 100%; border-collapse: collapse;">
+                        <thead>
+                          <tr>
+                            <th style="border: 1px solid #000; padding: 2px;">No.</th>
+                            <th style="border: 1px solid #000; padding: 2px;">No. ID</th>
+                            <th style="border: 1px solid #000; padding: 2px;">Description</th>
+                            <th style="border: 1px solid #000; padding: 2px;">Type/Model</th>
+                            <th style="border: 1px solid #000; padding: 2px;">SN</th>
+                            <th style="border: 1px solid #000; padding: 2px;">Year</th>
+                            <th style="border: 1px solid #000; padding: 2px;">Criticality (Y/N)</th>
+                            <th style="border: 1px solid #000; padding: 2px;" colspan="4">PM</th>
+                            <th style="border: 1px solid #000; padding: 2px;" colspan="3">Calibration</th>
+                            <th style="border: 1px solid #000; padding: 2px;">PIC</th>
+                            <th style="border: 1px solid #000; padding: 2px;">Dikerjakan tgl:</th>
+                            <th style="border: 1px solid #000; padding: 2px;">Keterangan</th>
+                          </tr>
+                          <tr>
+                            <th style="border: 1px solid #000; padding: 2px;"></th>
+                            <th style="border: 1px solid #000; padding: 2px;"></th>
+                            <th style="border: 1px solid #000; padding: 2px;"></th>
+                            <th style="border: 1px solid #000; padding: 2px;"></th>
+                            <th style="border: 1px solid #000; padding: 2px;"></th>
+                            <th style="border: 1px solid #000; padding: 2px;"></th>
+                            <th style="border: 1px solid #000; padding: 2px;"></th>
+                            <th style="border: 1px solid #000; padding: 2px;">Product</th>
+                            <th style="border: 1px solid #000; padding: 2px;">Process</th>
+                            <th style="border: 1px solid #000; padding: 2px;">Safety</th>
+                            <th style="border: 1px solid #000; padding: 2px;">Enviroment</th>
+                            <th style="border: 1px solid #000; padding: 2px;">Y/N</th>
+                            <th style="border: 1px solid #000; padding: 2px;">6 Monthly</th>
+                            <th style="border: 1px solid #000; padding: 2px;">Yearly</th>
+                            <th style="border: 1px solid #000; padding: 2px;">6/12</th>
+                            <th style="border: 1px solid #000; padding: 2px;">Y/N</th>
+                            <th style="border: 1px solid #000; padding: 2px;">Schedule</th>
+                            <th style="border: 1px solid #000; padding: 2px;"></th>
+                            <th style="border: 1px solid #000; padding: 2px;"></th>
+                            <th style="border: 1px solid #000; padding: 2px;"></th>
+                          </tr>
+                        </thead>
+                      </table>
                     </div>
                   </div>
                 </div>
@@ -428,13 +478,16 @@ const {
   saveConfig,
   resetConfig,
   loadConfig,
-  updateLogo
+  updateLogo,
+  uploadLogo,
+  deleteLogo
 } = useFrontendConfig()
 
 // local draft object used by the form; changes here are not reflected globally
 const draft = ref({ ...config.value })
 const draftLogo = ref(previewLogo.value)
 const isSavingLocal = ref(false) // Flag untuk mencegah watch trigger saat save
+const isUploading = ref(false)
 
 // keep draft in sync when config is externally updated (bukan dari save lokal)
 watch(config, (newVal) => {
@@ -445,7 +498,7 @@ watch(config, (newVal) => {
   draftLogo.value = previewLogo.value
 }, { deep: true })
 
-// ✅ GENERATE FAVICON FROM IMAGE
+// ✅ GENERATE FAVICON FROM IMAGE (fallback untuk development)
 const generateFaviconFromImage = (dataUrl) => {
   const canvas = document.createElement('canvas')
   canvas.width = 32
@@ -457,10 +510,7 @@ const generateFaviconFromImage = (dataUrl) => {
     ctx.clearRect(0, 0, canvas.width, canvas.height)
     ctx.drawImage(img, 0, 0, 32, 32)
     const faviconDataUrl = canvas.toDataURL('image/png')
-    // ✅ HANYA update draft, JANGAN update config di sini
-    // Config akan di-update di confirmAndSave saat flag isSavingLocal=true
     draft.value.faviconDataUrl = faviconDataUrl
-    // Update favicon immediately di browser
     let link = document.querySelector("link[rel~='icon']")
     if (!link) {
       link = document.createElement('link')
@@ -473,10 +523,8 @@ const generateFaviconFromImage = (dataUrl) => {
   img.src = dataUrl
 }
 
-
-
-// ✅ HANDLE UPLOAD LOGO with confirmation
-const handleLogoUpload = (event) => {
+// ✅ HANDLE UPLOAD LOGO with confirmation - Upload ke Vercel Blob
+const handleLogoUpload = async (event) => {
   const file = event.target.files[0]
   if (!file) return
 
@@ -503,58 +551,99 @@ const handleLogoUpload = (event) => {
     return
   }
 
-  const reader = new FileReader()
-  reader.onload = (e) => {
-    const dataUrl = e.target.result
+  // Show loading
+  if (window.Swal) {
+    window.Swal.fire({
+      title: 'Mengupload...',
+      text: 'Logo sedang diupload ke server',
+      allowOutsideClick: false,
+      didOpen: () => {
+        window.Swal.showLoading()
+      }
+    })
+  }
+
+  try {
+    // Upload ke API
+    const result = await uploadLogo(file)
+    
+    // Update draft untuk preview
+    draftLogo.value = result.logoUrl
+    draft.value.logoUrl = result.logoUrl
+    draft.value.faviconUrl = result.faviconUrl
+    
     if (window.Swal) {
       window.Swal.fire({
-        title: 'Konfirmasi Logo',
-        html: `<img src="${dataUrl}" style="max-width:200px;max-height:100px;display:block;margin:0 auto;"/><p class=\"mt-2\">Gunakan logo ini?</p>`,
-        showCancelButton: true,
-        confirmButtonText: 'Ya, gunakan',
-        cancelButtonText: 'Batal',
-        width: 400
-      }).then((result) => {
-        if (result.isConfirmed) {
-          // ✅ Update draft untuk preview di form
-          draftLogo.value = dataUrl
-          draft.value.logoDataUrl = dataUrl
-          // ✅ Generate favicon dari logo
-          generateFaviconFromImage(dataUrl)
-        }
+        icon: 'success',
+        title: 'Berhasil!',
+        text: 'Logo berhasil diupload',
+        timer: 1500,
+        showConfirmButton: false
+      })
+    }
+  } catch (error) {
+    if (window.Swal) {
+      window.Swal.fire({
+        icon: 'error',
+        title: 'Gagal Upload!',
+        text: error.message || 'Terjadi kesalahan saat upload logo',
+        confirmButtonText: 'OK'
       })
     }
   }
-  reader.readAsDataURL(file)
+  
   event.target.value = ''
 }
 
 // ✅ HAPUS LOGO with confirmation
-const removeLogo = () => {
+const removeLogo = async () => {
   if (window.Swal) {
     window.Swal.fire({
       icon: 'warning',
       title: 'Hapus logo?',
-      text: 'Logo dan favicon yang telah disimpan akan dihapus.',
+      text: 'Logo dan favicon yang telah disimpan akan dihapus dari semua pengguna.',
       showCancelButton: true,
       confirmButtonColor: '#d33',
       cancelButtonColor: '#3085d6',
       confirmButtonText: 'Ya, hapus',
       cancelButtonText: 'Batal'
-    }).then(result => {
+    }).then(async (result) => {
       if (result.isConfirmed) {
-        draft.value.logoDataUrl = null
-        draft.value.faviconDataUrl = null
-        draftLogo.value = null
-        config.value.logoDataUrl = null
-        config.value.faviconDataUrl = null
-        previewLogo.value = null
-        // Kembalikan favicon ke default
-        let link = document.querySelector("link[rel~='icon']")
-        if (link) {
-          link.href = '/favicon.ico'
+        try {
+          draft.value.logoUrl = null
+          draft.value.faviconUrl = null
+          draft.value.logoDataUrl = null
+          draft.value.faviconDataUrl = null
+          draftLogo.value = null
+          
+          // Delete dari blob storage
+          await deleteLogo()
+          
+          // Kembalikan favicon ke default
+          let link = document.querySelector("link[rel~='icon']")
+          if (link) {
+            link.href = '/favicon.ico'
+          }
+          
+          if (window.Swal) {
+            window.Swal.fire({
+              icon: 'success',
+              title: 'Berhasil!',
+              text: 'Logo berhasil dihapus',
+              timer: 1500,
+              showConfirmButton: false
+            })
+          }
+        } catch (error) {
+          if (window.Swal) {
+            window.Swal.fire({
+              icon: 'error',
+              title: 'Gagal!',
+              text: error.message || 'Terjadi kesalahan saat menghapus logo',
+              confirmButtonText: 'OK'
+            })
+          }
         }
-        saveConfig()
       }
     })
   }
@@ -573,39 +662,45 @@ const formatDate = (dateString) => {
   })
 }
 
-// ✅ CONFIRM AND APPLY DRAFT
-const confirmAndSave = () => {
+// ✅ CONFIRM AND APPLY DRAFT - Save to API
+const confirmAndSave = async () => {
+  const doSave = async () => {
+    // Set flag untuk mencegah watch trigger
+    isSavingLocal.value = true
+
+    // Update logo dari draft
+    if (draftLogo.value) {
+      draft.value.logoUrl = draftLogo.value
+    }
+
+    // Update config dari draft
+    Object.keys(draft.value).forEach(key => {
+      config.value[key] = draft.value[key]
+    })
+
+    // Update previewLogo di composable
+    if (draftLogo.value) {
+      previewLogo.value = draftLogo.value
+    }
+
+    // Simpan ke API (Vercel Blob)
+    await saveConfig()
+
+    // Reset flag setelah save selesai
+    isSavingLocal.value = false
+  }
+
   if (window.Swal) {
     window.Swal.fire({
       title: 'Simpan perubahan?',
-      text: 'Perubahan akan diterapkan dan langsung terlihat dalam aplikasi.',
+      text: 'Perubahan akan diterapkan dan langsung terlihat oleh semua pengguna.',
       icon: 'question',
       showCancelButton: true,
       confirmButtonText: 'Ya, simpan',
       cancelButtonText: 'Batal'
-    }).then(result => {
+    }).then(async (result) => {
       if (result.isConfirmed) {
-        // ✅ Set flag PERTAMA untuk mencegah watch trigger
-        isSavingLocal.value = true
-        
-        // ✅ Update logoDataUrl dari draft
-        draft.value.logoDataUrl = draftLogo.value
-        
-        // ✅ Update config dari draft (termasuk faviconDataUrl yang sudah di-generate)
-        Object.keys(draft.value).forEach(key => {
-          config.value[key] = draft.value[key]
-        })
-        
-        // ✅ Update previewLogo di composable
-        if (draftLogo.value) {
-          previewLogo.value = draftLogo.value
-        }
-        
-        // ✅ Simpan ke localStorage (saveConfig akan update favicon juga)
-        saveConfig()
-        
-        // ✅ Reset flag setelah save selesai
-        isSavingLocal.value = false
+        await doSave()
       } else {
         // revert draft back to current config
         draft.value = { ...config.value }
@@ -614,16 +709,7 @@ const confirmAndSave = () => {
     })
   } else {
     // fallback without confirmation
-    isSavingLocal.value = true
-    draft.value.logoDataUrl = draftLogo.value
-    Object.keys(draft.value).forEach(key => {
-      config.value[key] = draft.value[key]
-    })
-    if (draftLogo.value) {
-      previewLogo.value = draftLogo.value
-    }
-    saveConfig()
-    isSavingLocal.value = false
+    await doSave()
   }
 }
 

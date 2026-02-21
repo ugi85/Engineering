@@ -1,6 +1,7 @@
 <script setup>
 import { ref, onMounted, nextTick, watch } from 'vue'
 import { useLogAktivitas } from '@/composables/useLogAktivitas'
+import { printService } from '@/services/printService'
 
 // ✅ Ambil semua fungsi yang diperlukan dari composable
 // ❌ HAPUS: formatDateDisplay dari destructuring (karena akan duplicate)
@@ -32,10 +33,21 @@ const pageError = ref(null)
 // print helpers
 const printDate = ref('')
 const handlePrint = () => {
-  if (allActivityLogs.length === 0) return
+  if (allActivityLogs.length === 0) {
+    Swal.fire({
+      icon: 'warning',
+      title: 'Tidak Ada Data',
+      text: 'Belum ada data untuk dicetak',
+      confirmButtonText: 'OK'
+    })
+    return
+  }
+
   const now = new Date()
   printDate.value = `${now.getDate().toString().padStart(2,'0')}/${(now.getMonth()+1).toString().padStart(2,'0')}/${now.getFullYear()} ${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}`
-  window.print()
+  
+  // Call print service
+  printService.printAllActivity(allActivityLogs.value, 'All', new Date().getFullYear().toString())
 }
 
 // ✅ State untuk refresh

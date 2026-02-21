@@ -1,7 +1,8 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useLogAktivitas } from '@/composables/useLogAktivitas'
-import { logAktivitasApi } from '@/api/logAktivitas' // ✅ IMPORT API LANGSUNG
+import { logAktivitasApi } from '@/api/logAktivitas'
+import { printService } from '@/services/printService'
 
 const { 
   loading, 
@@ -105,10 +106,21 @@ const handleSearch = async () => {
 const printDate = ref('')
 // print helper
 const handlePrint = () => {
-  if (!dataLoaded.value || logs.value.length === 0) return
+  if (!dataLoaded.value || logs.value.length === 0) {
+    Swal.fire({
+      icon: 'warning',
+      title: 'Tidak Ada Data',
+      text: 'Belum ada data untuk dicetak',
+      confirmButtonText: 'OK'
+    })
+    return
+  }
+
   const now = new Date()
   printDate.value = `${now.getDate().toString().padStart(2,'0')}/${(now.getMonth()+1).toString().padStart(2,'0')}/${now.getFullYear()} ${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}`
-  window.print()
+  
+  // Call print service
+  printService.printPM(logs.value, selectedMonth.value, selectedYear.value)
 }
 
 // ✅ PERBAIKAN UTAMA: SIMPAN LANGSUNG VIA API (TANPA LEWAT COMPOSABLE)

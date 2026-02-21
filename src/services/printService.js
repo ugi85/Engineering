@@ -3,16 +3,17 @@ import { useFrontendConfig } from '@/composables/useConfig'
 
 export const printService = {
   // ✅ GENERATE PRINT HTML DENGAN KONFIGURASI DINAMIS
-  generatePrintHtml(title, tableContent, period = '') {
+  generatePrintHtml(title, tableContent, period = '', isCalibration = false) {
     const { config, getLogoUrl, getFullAddress } = useFrontendConfig()
-    
+
     // Ambil nilai konfigurasi
     const systemName = config.value.systemName
+    const systemVersion = config.value.systemVersion
     const companyName = config.value.companyName
     const logoUrl = getLogoUrl.value
     const addressHtml = getFullAddress.value
-    const documentRef = isCalibration 
-      ? config.value.documentRefCalibration 
+    const documentRef = isCalibration
+      ? config.value.documentRefCalibration
       : config.value.documentRefEquipment
     const orientation = config.value.print.orientation
     const margin = config.value.print.margin
@@ -21,11 +22,11 @@ export const printService = {
     const showLogo = config.value.print.showLogo
     const showAddress = config.value.print.showAddress
     const showDocumentRef = config.value.print.showDocumentRef
-    
+
     // Format tanggal cetak
     const now = new Date()
     const printDate = `${now.getDate().toString().padStart(2, '0')}/${(now.getMonth() + 1).toString().padStart(2, '0')}/${now.getFullYear()} ${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`
-    
+
     return `
       <!DOCTYPE html>
       <html lang="id">
@@ -37,191 +38,141 @@ export const printService = {
             size: ${orientation};
             margin: ${margin};
           }
-          
+
           body {
             font-family: ${fontFamily};
-            padding: 15mm;
+            padding: 0;
             color: #333;
-            line-height: 1.5;
+            line-height: 1.3;
+            margin: 0;
           }
-          
-          .print-header {
-            text-align: center;
-            margin-bottom: 25px;
-            border-bottom: 3px solid #0056b3;
-            padding-bottom: 20px;
-          }
-          
-          .company-logo {
-            max-height: 40px;
-            max-width: 150px;
-            margin-bottom: 10px;
-          }
-          
-          .company-name {
-            font-size: 28px;
-            font-weight: bold;
-            color: #003366;
-            margin-bottom: 5px;
-          }
-          
-          .company-address {
-            font-size: 14px;
-            color: #555;
-            line-height: 1.4;
-            margin-bottom: 3px;
-          }
-          
-          .report-title {
-            color: #0056b3;
-            margin: 15px 0 10px;
-            font-size: 26px;
-            font-weight: bold;
-          }
-          
-          .report-subtitle {
-            color: #666;
-            font-size: 16px;
-            margin: 5px 0;
-            font-weight: 500;
-          }
-          
-          .report-period {
-            background: #e9ecef;
-            padding: 8px 20px;
-            border-radius: 25px;
-            display: inline-block;
-            margin-top: 12px;
-            font-weight: bold;
-            font-size: 18px;
-            color: #0056b3;
-          }
-          
+
           .print-table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 10px;
-            font-size: 12px;
+            font-size: 8px;
           }
-          
-          .print-table th {
-            background-color: #f0f4f7;
-            font-weight: 600;
-            padding: 10px 8px;
+
+          .print-table thead th {
+            border: 1px solid #000;
+            padding: 3px 5px;
             text-align: left;
-            border: 1px solid #ddd;
-            font-size: 13px;
+            background-color: #f0f0f0;
+            font-weight: bold;
+            font-size: 7px;
+            white-space: nowrap;
           }
-          
-          .print-table td {
-            padding: 8px;
-            border: 1px solid #ddd;
-            vertical-align: top;
+
+          .print-table tbody td {
+            border: 1px solid #000;
+            padding: 3px 5px;
+            text-align: left;
           }
-          
-          .print-table .text-center {
+
+          .print-table td.text-center {
             text-align: center;
           }
-          
-          .status-badge {
-            display: inline-block;
-            padding: 3px 8px;
-            border-radius: 12px;
-            font-size: 11px;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
+
+          .header-info {
+            width: 100%;
+            margin-bottom: 3px;
+            border-bottom: 2px solid #000;
+            padding-bottom: 3px;
           }
-          
-          .status-success {
-            background-color: #28a745;
-            color: white;
+
+          .header-line {
+            display: block;
+            text-align: left;
+            font-weight: bold;
+            white-space: nowrap;
+            margin: 0;
+            padding: 0;
+            line-height: 1.3;
           }
-          
-          .status-danger {
-            background-color: #dc3545;
-            color: white;
+
+          .company-name {
+            font-size: 14px;
+            margin-bottom: 2px;
           }
-          
-          .completed-row {
-            background-color: #f8fdfa !important;
+
+          .doc-title {
+            font-size: 10px;
+            margin-bottom: 1px;
           }
-          
+
+          .doc-number {
+            font-size: 10px;
+          }
+
           .print-footer {
-            text-align: center;
-            margin-top: 40px;
-            padding-top: 20px;
-            border-top: 1px solid #ddd;
-            font-size: 12px;
-            color: #666;
+            margin-top: 8px;
+            padding-top: 5px;
+            border-top: 1px solid #000;
+            font-size: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
           }
-          
+
+          .footer-left {
+            text-align: left;
+          }
+
+          .footer-right {
+            text-align: right;
+            font-weight: bold;
+          }
+
           .footer-timestamp {
-            font-weight: 500;
-            color: #0056b3;
-            margin-bottom: 5px;
+            font-weight: bold;
+            margin-bottom: 2px;
           }
-          
-          .footer-page {
-            margin-top: 3px;
+
+          @page {
+            @bottom-right {
+              content: "Hal " counter(page) " of  " counter(pages);
+              font-size: 8px;
+              font-weight: bold;
+              margin-right: 0;
+            }
           }
-          
-          .footer-disclaimer {
-            margin-top: 15px;
-            font-style: italic;
-            color: #888;
-            font-size: 11px;
-          }
-          
+
           @media print {
             body {
               padding: ${margin};
               -webkit-print-color-adjust: exact;
               print-color-adjust: exact;
             }
-            
+
             .print-table {
-              font-size: 11px;
+              font-size: 7px;
             }
-            
-            .print-table th {
-              padding: 8px 6px;
-              font-size: 12px;
+
+            .print-table thead {
+              display: table-header-group;
             }
-            
-            .print-table td {
-              padding: 6px;
-            }
-            
-            .status-badge {
-              padding: 2px 6px;
-              font-size: 10px;
+
+            .print-table th, .print-table td {
+              padding: 2px 4px;
             }
           }
         </style>
       </head>
       <body>
-        <div class="print-header">
-          ${showLogo ? `<img src="${logoUrl}" alt="Logo" class="company-logo">` : ''}
-          <div class="company-name">${companyName}</div>
-          ${showAddress ? `<div class="company-address" style="line-height:1.4">${addressHtml}</div>` : ''}
-          
-          <h1 class="report-title">${title}</h1>
-          ${showDocumentRef ? `<div class="report-subtitle">No. Reff: ${documentRef}</div>` : ''}
-          ${period ? `<div class="report-period">Periode: ${period}</div>` : ''}
+        <div class="header-info">
+          <div class="header-line company-name">${companyName}</div>
+          <div class="header-line doc-title">Judul Dokumen : ${title}</div>
+          <div class="header-line doc-number">Nomor Dokumen : ${documentRef}</div>
         </div>
-        
+
         ${tableContent}
-        
+
         <div class="print-footer">
-          <div class="footer-timestamp">Dicetak pada: ${printDate}</div>
-          <div class="footer-page">Halaman 1 dari 1</div>
-          <div class="footer-disclaimer">
-            Dokumen ini dihasilkan secara otomatis oleh ${systemName} v${config.value.systemVersion}. 
-            Setiap perubahan harus melalui prosedur kontrol dokumen yang berlaku.
+          <div class="footer-left">
+            <div class="footer-timestamp">Dicetak pada: ${printDate} | ${systemName} v${systemVersion}</div>
           </div>
         </div>
-        
+
         <script>
           window.onload = function() {
             setTimeout(function() {
@@ -239,27 +190,41 @@ export const printService = {
   
 
   // ✅ PRINT DAFTAR ALAT
-  printDaftarAlat(alat, title = 'DAFTAR ALAT') {
-    // Generate table content
+  printDaftarAlat(alat, title = 'Daftar Peralatan dan Jadwal Perawatannya') {
+    // Generate table content dengan format lengkap
     let tableContent = `
       <table class="print-table">
         <thead>
           <tr>
-            <th>No</th>
-            <th>No. ID</th>
-            <th>Description</th>
-            <th>Type/Model</th>
-            <th>SN</th>
-            <th>Year</th>
-            <th>Location</th>
-            <th>Criticality</th>
-            <th>PM</th>
-            <th>Calibration</th>
+            <th rowspan="2" style="width: 3%;">No.</th>
+            <th rowspan="2" style="width: 8%;">No. ID</th>
+            <th rowspan="2" style="width: 15%;">Description</th>
+            <th rowspan="2" style="width: 10%;">Type/Model</th>
+            <th rowspan="2" style="width: 10%;">SN</th>
+            <th rowspan="2" style="width: 5%;">Year</th>
+            <th rowspan="2" style="width: 5%;">Criticality<br>(Y/N)</th>
+            <th colspan="4" style="width: 16%;">PM</th>
+            <th colspan="3" style="width: 12%;">Calibration</th>
+            <th rowspan="2" style="width: 5%;">PIC</th>
+            <th rowspan="2" style="width: 5%;">Dikerjakan<br>tgl:</th>
+            <th rowspan="2" style="width: 10%;">Keterangan</th>
+          </tr>
+          <tr>
+            <th style="width: 4%;">Product</th>
+            <th style="width: 4%;">Process</th>
+            <th style="width: 4%;">Safety</th>
+            <th style="width: 4%;">Enviroment</th>
+            <th style="width: 4%;">Y/N</th>
+            <th style="width: 4%;">6 Monthly</th>
+            <th style="width: 4%;">Yearly</th>
+            <th style="width: 4%;">6/12</th>
+            <th style="width: 4%;">Y/N</th>
+            <th style="width: 4%;">Schedule</th>
           </tr>
         </thead>
         <tbody>
     `
-    
+
     alat.forEach((item, index) => {
       tableContent += `
         <tr>
@@ -268,60 +233,70 @@ export const printService = {
           <td>${item.Description || ''}</td>
           <td>${item['Type/Model'] || ''}</td>
           <td>${item.SN || ''}</td>
-          <td>${item.Year || ''}</td>
-          <td>${item.Location || ''}</td>
-          <td>${item.Criticality || ''}</td>
+          <td class="text-center">${item.Year || ''}</td>
+          <td class="text-center">${item.Criticality || ''}</td>
+          <td class="text-center">${item['PM Product'] || ''}</td>
+          <td class="text-center">${item['PM Process'] || ''}</td>
+          <td class="text-center">${item['PM Safety'] || ''}</td>
+          <td class="text-center">${item['PM Enviroment'] || ''}</td>
           <td class="text-center">${item['PM Y/N'] || ''}</td>
-          <td class="text-center">${item['Y/N'] || ''}</td>
+          <td class="text-center">${item['Calibration 6 Monthly'] || ''}</td>
+          <td class="text-center">${item['Calibration Yearly'] || ''}</td>
+          <td class="text-center">${item['Calibration 6/12'] || ''}</td>
+          <td class="text-center">${item['Calibration Y/N'] || ''}</td>
+          <td class="text-center">${item['Calibration Schedule'] || ''}</td>
+          <td>${item.PIC || ''}</td>
+          <td class="text-center">${item['Dikerjakan tgl'] || ''}</td>
+          <td>${item.Keterangan || ''}</td>
         </tr>
       `
     })
-    
+
     tableContent += `
         </tbody>
       </table>
     `
-    
+
     // Generate print window
-    const printWindow = window.open('', '_blank', 'width=1200,height=800')
+    const printWindow = window.open('', '_blank', 'width=1400,height=800')
     if (!printWindow) {
       alert('Popup blocker menghalangi pencetakan. Silakan izinkan popup.')
       return
     }
-    
+
     const html = this.generatePrintHtml(
       title,
       tableContent,
       '', // Tidak ada periode
       false // BUKAN jadwal kalibrasi
     )
-    
+
     printWindow.document.write(html)
     printWindow.document.close()
   },
 
-    // ✅ PRINT JADWAL KALIBRASI
+  // ✅ PRINT JADWAL KALIBRASI
   printJadwalKalibrasi(jadwal, month, year) {
     // Generate table content
     let tableContent = `
       <table class="print-table">
         <thead>
           <tr>
-            <th>No</th>
-            <th>No.ID</th>
-            <th>Description</th>
-            <th>Calibration ID</th>
-            <th>Parameter</th>
-            <th>Process Range</th>
-            <th>Reject Error</th>
-            <th>Due Date</th>
-            <th>Remark</th>
-            <th>Criticality</th>
+            <th rowspan="2" style="width: 3%;">No</th>
+            <th rowspan="2" style="width: 8%;">No.ID</th>
+            <th rowspan="2" style="width: 15%;">Description</th>
+            <th rowspan="2" style="width: 10%;">Calibration ID</th>
+            <th rowspan="2" style="width: 12%;">Parameter</th>
+            <th rowspan="2" style="width: 12%;">Process Range</th>
+            <th rowspan="2" style="width: 12%;">Reject Error</th>
+            <th rowspan="2" style="width: 10%;">Due Date</th>
+            <th rowspan="2" style="width: 10%;">Remark</th>
+            <th rowspan="2" style="width: 8%;">Criticality</th>
           </tr>
         </thead>
         <tbody>
     `
-    
+
     jadwal.forEach((item, index) => {
       tableContent += `
         <tr>
@@ -332,32 +307,242 @@ export const printService = {
           <td>${item.Parameter || ''}</td>
           <td>${item['Process Range'] || ''}</td>
           <td>${item['Reject Error Limit'] || ''}</td>
-          <td class="text-center">${item['Due Date'] || ''}</td>
+          <td class="text-center">${this.formatDate(item['Due Date']) || ''}</td>
           <td>${item.Remark || ''}</td>
           <td>${item.Criticality || ''}</td>
         </tr>
       `
     })
-    
+
     tableContent += `
         </tbody>
       </table>
     `
-    
+
     // Generate print window
-    const printWindow = window.open('', '_blank', 'width=1200,height=800')
+    const printWindow = window.open('', '_blank', 'width=1400,height=800')
     if (!printWindow) {
       alert('Popup blocker menghalangi pencetakan. Silakan izinkan popup.')
       return
     }
-    
+
     const html = this.generatePrintHtml(
-      'LAPORAN JADWAL KALIBRASI',
+      'Jadwal Kalibrasi',
       tableContent,
       `${month} ${year}`,
       true // INI JADWAL KALIBRASI
     )
-    
+
+    printWindow.document.write(html)
+    printWindow.document.close()
+  },
+
+  // ✅ PRINT LOG KALIBRASI
+  printKalibrasiLogs(logs, month, year) {
+    if (!logs || logs.length === 0) {
+      alert('Tidak ada data untuk dicetak')
+      return
+    }
+
+    // Generate table content
+    let tableContent = `
+      <table class="print-table">
+        <thead>
+          <tr>
+            <th style="width: 4%;">No</th>
+            <th style="width: 10%;">No.ID</th>
+            <th style="width: 15%;">Description</th>
+            <th style="width: 12%;">Calibration ID</th>
+            <th style="width: 10%;">Parameter</th>
+            <th style="width: 12%;">Proses Range</th>
+            <th style="width: 12%;">Reject limit</th>
+            <th style="width: 8%;">Due Date</th>
+            <th style="width: 8%;">PIC</th>
+            <th style="width: 9%;">Execute Date</th>
+            <th style="width: 15%;">Keterangan</th>
+          </tr>
+        </thead>
+        <tbody>
+    `
+
+    logs.forEach((item, index) => {
+      // Format tanggal
+      const dueDate = this.formatDate(item['Due Date'])
+      const executeDate = this.formatDate(item.execute_date)
+
+      tableContent += `
+        <tr>
+          <td class="text-center">${index + 1}</td>
+          <td>${item['No.ID'] || ''}</td>
+          <td>${item.Description || ''}</td>
+          <td>${item['Calibration Id.'] || ''}</td>
+          <td>${item.Parameter || ''}</td>
+          <td>${item['Process Range'] || ''}</td>
+          <td>${item['Reject Error Limit'] || ''}</td>
+          <td class="text-center">${dueDate}</td>
+          <td>${item.pic || ''}</td>
+          <td class="text-center">${executeDate}</td>
+          <td>${item.ket || ''}</td>
+        </tr>
+      `
+    })
+
+    tableContent += `
+        </tbody>
+      </table>
+    `
+
+    // Generate print window
+    const printWindow = window.open('', '_blank', 'width=1600,height=800')
+    if (!printWindow) {
+      alert('Popup blocker menghalangi pencetakan. Silakan izinkan popup.')
+      return
+    }
+
+    const html = this.generatePrintHtml(
+      'Log Kalibrasi',
+      tableContent,
+      `${month} ${year}`,
+      true // INI LOG KALIBRASI
+    )
+
+    printWindow.document.write(html)
+    printWindow.document.close()
+  },
+
+  // ✅ PRINT LOG PM
+  printPM(logs, month, year) {
+    if (!logs || logs.length === 0) {
+      alert('Tidak ada data untuk dicetak')
+      return
+    }
+
+    // Generate table content
+    let tableContent = `
+      <table class="print-table">
+        <thead>
+          <tr>
+            <th style="width: 5%;">No</th>
+            <th style="width: 10%;">No.ID</th>
+            <th style="width: 15%;">Description</th>
+            <th style="width: 12%;">Type/Model</th>
+            <th style="width: 10%;">SN</th>
+            <th style="width: 8%;">Interval</th>
+            <th style="width: 10%;">Due Date</th>
+            <th style="width: 10%;">PIC</th>
+            <th style="width: 10%;">Execute Date</th>
+            <th style="width: 15%;">Keterangan</th>
+          </tr>
+        </thead>
+        <tbody>
+    `
+
+    logs.forEach((item, index) => {
+      // Format tanggal
+      const dueDate = this.formatDate(item['Due Date'])
+      const executeDate = this.formatDate(item.execute_date)
+
+      tableContent += `
+        <tr>
+          <td class="text-center">${index + 1}</td>
+          <td>${item['No.ID'] || ''}</td>
+          <td>${item.Description || ''}</td>
+          <td>${item['Type/Model'] || item.Parameter || ''}</td>
+          <td>${item.SN || '-'}</td>
+          <td class="text-center">${item.pm_interval || '-'}</td>
+          <td class="text-center">${dueDate}</td>
+          <td>${item.pic || ''}</td>
+          <td class="text-center">${executeDate}</td>
+          <td>${item.ket || ''}</td>
+        </tr>
+      `
+    })
+
+    tableContent += `
+        </tbody>
+      </table>
+    `
+
+    // Generate print window
+    const printWindow = window.open('', '_blank', 'width=1600,height=800')
+    if (!printWindow) {
+      alert('Popup blocker menghalangi pencetakan. Silakan izinkan popup.')
+      return
+    }
+
+    const html = this.generatePrintHtml(
+      'Log PM',
+      tableContent,
+      `${month} ${year}`,
+      false // BUKAN LOG KALIBRASI
+    )
+
+    printWindow.document.write(html)
+    printWindow.document.close()
+  },
+
+  // ✅ PRINT ALL AKTIVITAS
+  printAllActivity(logs, month, year) {
+    if (!logs || logs.length === 0) {
+      alert('Tidak ada data untuk dicetak')
+      return
+    }
+
+    // Generate table content
+    let tableContent = `
+      <table class="print-table">
+        <thead>
+          <tr>
+            <th style="width: 5%;">No</th>
+            <th style="width: 10%;">No.ID</th>
+            <th style="width: 15%;">Description</th>
+            <th style="width: 12%;">Log ID</th>
+            <th style="width: 10%;">Jenis</th>
+            <th style="width: 12%;">PIC</th>
+            <th style="width: 12%;">Execute Date</th>
+            <th style="width: 24%;">Keterangan</th>
+          </tr>
+        </thead>
+        <tbody>
+    `
+
+    logs.forEach((item, index) => {
+      // Format tanggal
+      const executeDate = this.formatDate(item.execute_date) || this.formatDate(item.tanggal) || '-'
+
+      tableContent += `
+        <tr>
+          <td class="text-center">${index + 1}</td>
+          <td>${item.no_id || '-'}</td>
+          <td>${item.description || item.type_model || '-'}</td>
+          <td>${item.cal_id || '-'}</td>
+          <td class="text-center">${item.jenis || '-'}</td>
+          <td>${item.petugas || '-'}</td>
+          <td class="text-center">${executeDate}</td>
+          <td>${item.keterangan || '-'}</td>
+        </tr>
+      `
+    })
+
+    tableContent += `
+        </tbody>
+      </table>
+    `
+
+    // Generate print window
+    const printWindow = window.open('', '_blank', 'width=1600,height=800')
+    if (!printWindow) {
+      alert('Popup blocker menghalangi pencetakan. Silakan izinkan popup.')
+      return
+    }
+
+    const html = this.generatePrintHtml(
+      'Log Aktivitas',
+      tableContent,
+      `${month} ${year}`,
+      false // BUKAN LOG KALIBRASI
+    )
+
     printWindow.document.write(html)
     printWindow.document.close()
   },

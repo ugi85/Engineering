@@ -106,14 +106,22 @@ const handleSearch = async () => {
 // print helper – simple browser print of current view
 const printDate = ref('')
 const handlePrint = () => {
-  printService.printKalibrasiLogs(logs.value, selectedMonth.value, selectedYear.value)
-  if (!dataLoaded.value || logs.value.length === 0) return
+  if (!dataLoaded.value || logs.value.length === 0) {
+    Swal.fire({
+      icon: 'warning',
+      title: 'Tidak Ada Data',
+      text: 'Belum ada data untuk dicetak',
+      confirmButtonText: 'OK'
+    })
+    return
+  }
 
   // prepare header information
   const now = new Date()
   printDate.value = `${now.getDate().toString().padStart(2,'0')}/${(now.getMonth()+1).toString().padStart(2,'0')}/${now.getFullYear()} ${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}`
 
-  window.print()
+  // Call print service
+  printService.printKalibrasiLogs(logs.value, selectedMonth.value, selectedYear.value)
 }
 
 // ✅ PERBAIKAN UTAMA: SIMPAN LANGSUNG VIA API (TANPA LEWAT COMPOSABLE)

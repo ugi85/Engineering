@@ -1,6 +1,7 @@
 <script setup>
 import { ref, onMounted, nextTick, watch } from 'vue'
 import { useLogAktivitas } from '@/composables/useLogAktivitas'
+import { printService } from '@/services/printService'
 
 // ✅ Ambil semua fungsi yang diperlukan dari composable
 // ❌ HAPUS: formatDateDisplay dari destructuring (karena akan duplicate)
@@ -28,6 +29,26 @@ const {
 
 // ✅ State untuk error handling
 const pageError = ref(null)
+
+// print helpers
+const printDate = ref('')
+const handlePrint = () => {
+  if (allActivityLogs.length === 0) {
+    Swal.fire({
+      icon: 'warning',
+      title: 'Tidak Ada Data',
+      text: 'Belum ada data untuk dicetak',
+      confirmButtonText: 'OK'
+    })
+    return
+  }
+
+  const now = new Date()
+  printDate.value = `${now.getDate().toString().padStart(2,'0')}/${(now.getMonth()+1).toString().padStart(2,'0')}/${now.getFullYear()} ${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}`
+  
+  // Call print service
+  printService.printAllActivity(allActivityLogs.value, 'All', new Date().getFullYear().toString())
+}
 
 // ✅ State untuk refresh
 const refresh = () => {
@@ -132,10 +153,18 @@ onMounted(async () => {
           <h1 class="mb-0">Semua Log Aktivitas</h1>
           <small class="text-muted">Menampilkan semua aktivitas Kalibrasi dan PM yang pernah dilaksanakan</small>
         </div>
-        <div class="d-flex align-items-center">
+        <div class="d-flex align-items-center no-print">
           <span class="badge badge-info mr-3">
             <i class="fas fa-database mr-1"></i>Total: {{ allActivityLogs.length }}
           </span>
+          <button
+            class="btn btn-secondary btn-sm mr-2"
+            :disabled="loading || allActivityLogs.length===0"
+            @click="handlePrint"
+            title="Cetak semua log aktivitas"
+          >
+            <i class="fas fa-print mr-1"></i>Print
+          </button>
           <!-- <button 
             @click="refresh" 
             class="btn btn-outline-secondary"
@@ -149,6 +178,18 @@ onMounted(async () => {
 
     <section class="content">
       <div class="container-fluid">
+        <!-- print header -->
+        <div class="print-header d-none">
+          <div class="company-logo">AGIS</div>
+          <div class="company-name">PT. AGIS INSTRUMENT SERVICES</div>
+          <div class="company-address">Jl. Raya Industri No. 123, Kawasan Industri MM2100</div>
+          <div class="company-address">Cikarang Barat, Bekasi 17520 - Indonesia</div>
+          <div class="company-address">Telp: (021) 897-1234 | Email: info@agis.co.id</div>
+          <h1 class="report-title">LAPORAN LOG AKTIVITAS</h1>
+          <div class="report-period">
+            Dicetak pada: {{ printDate }}
+          </div>
+        </div>
         <div class="card">
           <!-- <div class="card-header bg-primary">
             <h3 class="card-title text-white">
@@ -158,7 +199,7 @@ onMounted(async () => {
           
           <div class="card-body">
             <!-- ✅ ERROR STATE - TAMPILKAN JIKA ADA ERROR -->
-            <div v-if="pageError" class="alert alert-danger alert-dismissible fade show">
+            <div v-if="pageError" class="alert alert-danger alert-dismissible fade show no-print">
               <i class="fas fa-exclamation-triangle mr-2"></i>
               <strong>Error:</strong> {{ pageError }}
               <button type="button" class="close" @click="pageError = null">
@@ -167,7 +208,7 @@ onMounted(async () => {
             </div>
 
             <!-- ✅ LOADING STATE -->
-            <div v-else-if="loading" class="text-center py-5">
+            <div v-else-if="loading" class="text-center py-5 no-print">
               <div class="spinner-border text-primary" role="status">
                 <span class="sr-only">Loading...</span>
               </div>
@@ -471,22 +512,71 @@ onMounted(async () => {
   color: #0c5460;
 }
 
-/* DataTables custom styling */
-.dataTables_wrapper {
-  margin-top: 1rem;
-}
-
-.dataTables_length select,
-.dataTables_filter input {
-  border: 1px solid #020b14;
-  border-radius: 0.25rem;
-  padding: 0.25rem 0.5rem;
-  font-size: 0.875rem;
-}
-
-.dataTables_filter input {
-  margin-left: 0.5rem;
-  width: auto !important;
+/* print-specific helpers */
+@media print {
+  @page {
+    size: landscape;
+    margin: 10mm;
+  }
+  .no-print {
+    display: none !important;
+  }
+  .print-header.d-none {
+    display: block !important;
+  }
+  .print-header {
+    text-align: center;
+    margin-bottom: 20px;
+  }
+  .print-header .company-logo {
+    font-size: 28px;
+    font-weight: bold;
+    color: #003366;
+  }
+  .print-header .company-name {
+    font-size: 24px;
+    font-weight: bold;
+    color: #003366;
+  }
+  .print-header .company-address {
+    font-size: 12px;
+    color: #555;
+    line-height: 1.3;
+  }
+  .print-header .report-title {
+    margin-top: 10px;
+    font-size: 22px;
+    color: #0056b3;
+    font-weight: bold;
+  }
+  .print-header .report-period {
+    font-size: 14px;
+    color: #666;
+  }
+  .print-footer {
+    text-align: center;
+    margin-top: 30px;
+    font-size: 12px;
+    color: #666;
+  }
+  .print-footer .footer-timestamp {
+    font-weight: 500;
+    color: #0056b3;
+    margin-bottom: 5px;
+  }
+  .print-footer .footer-page {
+    margin-top: 3px;
+  }
+  .print-footer .footer-disclaimer {
+    margin-top: 15px;
+    font-style: italic;
+    color: #888;
+    font-size: 11px;
+  }
+  /* hide datatables controls */
+  .dataTables_wrapper {
+    display: none !important;
+  }
 }
 
 .dataTables_info {

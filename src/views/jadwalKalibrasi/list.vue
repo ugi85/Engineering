@@ -2,6 +2,7 @@
 import { ref, onMounted, watch, computed } from 'vue'
 import { useJadwalKalibrasi } from '@/composables/useJadwalKalibrasi'
 import { useDaftarAlat } from '@/composables/useDaftarAlat'
+import { useFrontendConfig } from '@/composables/useConfig'
 
 // ✅ Ambil semua fungsi CRUD
 const { 
@@ -12,6 +13,8 @@ const {
   deleteJadwal,
   isSaving 
 } = useJadwalKalibrasi()
+
+const { config } = useFrontendConfig()
 
 // Ambil daftar alat untuk menampilkan opsi No.ID di modal
 const { tools: daftarAlat, loading: loadingAlat, fetchList: fetchDaftarAlat } = useDaftarAlat()
@@ -45,6 +48,11 @@ const modalTitle = computed(() =>
 const saveButtonText = computed(() =>
   isEditMode.value ? 'Simpan Perubahan' : 'Tambah Jadwal'
 )
+
+// ✅ DYNAMIC REFERENCE
+const documentRefCalibration = computed(() => {
+  return config.value.documentRefCalibration
+})
 
 // Isi description otomatis ketika user memilih no_id dari daftarAlat
 watch(
@@ -139,7 +147,8 @@ onMounted(() => {
       <div class="container-fluid d-flex justify-content-between align-items-start">
         <div>
           <h1 class="mb-0">Jadwal Kalibrasi</h1>
-          <small class="text-muted">No Reff: AGIS-WI-ENG-016-LD1_v5.0</small>
+          <!-- <small class="text-muted">No Reff: AGIS-WI-ENG-016-LD1_v5.0</small><br> -->
+           <small class="text-muted">No Reff: {{ documentRefCalibration }}</small>
         </div>
         <button class="btn btn-info" @click="openCreateModal">
           Tambah Jadwal

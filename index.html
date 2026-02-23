@@ -5,6 +5,26 @@
     <link rel="icon" href="/favicon.ico">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>EEHS Dashboard</title>
+
+    <!-- ✅ Script untuk menerapkan favicon dari konfigurasi -->
+    <script>
+      (function() {
+        try {
+          const config = localStorage.getItem('qms_frontend_config_v2')
+          if (config) {
+            const parsed = JSON.parse(config)
+            if (parsed.faviconDataUrl) {
+              const link = document.querySelector("link[rel~='icon']")
+              if (link) {
+                link.href = parsed.faviconDataUrl
+              }
+            }
+          }
+        } catch (e) {
+          console.error('Gagal memuat favicon dari konfigurasi:', e)
+        }
+      })()
+    </script>
     
   <!-- Google Font: Source Sans Pro -->
   <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700&display=fallback">

@@ -1,11 +1,12 @@
-// src/composables/useFrontendConfig.js
-import { ref, computed, onMounted } from 'vue'
+// src/composables/useConfig.js
+import { ref, computed } from 'vue'
+import { configApi } from '@/api/configApi'
 
-// ✅ DEFAULT CONFIG DENGAN 2 JENIS NO. REFERENSI
+// ✅ DEFAULT CONFIG
 const DEFAULT_CONFIG = {
-  systemName: 'AGIS QMS',
-  systemVersion: '2.1.0',
-  companyName: 'PT. AGIS INSTRUMENT SERVICES',
+  systemName: 'EeHS Board',
+  systemVersion: '1.0',
+  companyName: 'PT Anugrah Amartha Global',
   addressLine1: 'Jl. Raya Industri No. 123',
   addressLine2: 'Kawasan Industri MM2100',
   city: 'Cikarang Barat',
@@ -16,13 +17,13 @@ const DEFAULT_CONFIG = {
   email: 'info@agis.co.id',
 
   // ✅ 2 JENIS NO. REFERENSI
-  documentRefEquipment: 'AGIS-WI-ENG-001-LD1_v5.0', // Untuk Daftar Alat
-  documentRefCalibration: 'AGIS-WI-ENG-016-LD1_v5.0', // Untuk Jadwal Kalibrasi
+  documentRefEquipment: 'AGIS-WI-ENG-001-LD1_v5.0',
+  documentRefCalibration: 'AGIS-WI-ENG-016-LD1_v5.0',
 
-  logoUrl: null, // URL dari Vercel Blob
-  faviconUrl: null, // URL dari Vercel Blob
-  logoDataUrl: null, // Fallback untuk local preview (base64)
-  faviconDataUrl: null, // Fallback untuk local preview (base64)
+  logoUrl: '',
+  faviconUrl: '',
+  logoDataUrl: '',
+  faviconDataUrl: '',
   print: {
     orientation: 'landscape',
     margin: '10mm',
@@ -35,98 +36,226 @@ const DEFAULT_CONFIG = {
   lastUpdated: null
 }
 
-const CONFIG_KEY = 'qms_frontend_config_v2' // For fallback only
-const API_BASE = '/api'
+const CONFIG_KEY = 'qms_frontend_config_v2'
 
-// singleton reactive state shared across all imports
+// Auto-refresh interval (dalam milliseconds)
+const AUTO_REFRESH_INTERVAL = 30000 // 30 detik
+
+// singleton reactive state
 const config = ref({ ...DEFAULT_CONFIG })
 const isSaving = ref(false)
 const previewLogo = ref(null)
 const isLoading = ref(false)
+let refreshInterval = null
 
-// ✅ Load config from API
-const loadConfig = async () => {
-  isLoading.value = true
+// ✅ Mapping key dari Google Sheet ke format config frontend
+const SHEET_TO_FRONTEND_MAPPING = {
+  'nama sistem': 'systemName',
+  'versi sistem': 'systemVersion',
+  'nama perusahaan': 'companyName',
+  'noref daftaralat': 'documentRefEquipment',
+  'noref kalibrasi': 'documentRefCalibration',
+  'logo sistem': 'logoUrl',
+  'logo perusahaan': 'logoPerusahaanUrl',
+  'favicon': 'faviconUrl'
+}
+
+// ✅ Mapping dari frontend ke Google Sheet
+const FRONTEND_TO_SHEET_MAPPING = {}
+Object.keys(SHEET_TO_FRONTEND_MAPPING).forEach(sheetKey => {
+  FRONTEND_TO_SHEET_MAPPING[SHEET_TO_FRONTEND_MAPPING[sheetKey]] = sheetKey
+})
+
+// ✅ Transform data dari sheet ke format frontend
+function transformSheetToFrontend(sheetData) {
+  const frontendData = {}
+  
+  Object.keys(SHEET_TO_FRONTEND_MAPPING).forEach(sheetKey => {
+    const frontendKey = SHEET_TO_FRONTEND_MAPPING[sheetKey]
+    if (sheetData[sheetKey] !== undefined) {
+      frontendData[frontendKey] = sheetData[sheetKey]
+    }
+  })
+  
+  return frontendData
+}
+
+// ✅ Transform data dari frontend ke format sheet
+function transformFrontendToSheet(frontendData) {
+  const sheetData = {}
+  
+  Object.keys(FRONTEND_TO_SHEET_MAPPING).forEach(frontendKey => {
+    const sheetKey = FRONTEND_TO_SHEET_MAPPING[frontendKey]
+    if (frontendData[frontendKey] !== undefined) {
+      sheetData[sheetKey] = frontendData[frontendKey]
+    }
+  })
+  
+  return sheetData
+}
+
+// ✅ Load config dari Google Sheets
+const loadConfig = async (silent = false) => {
+  if (!silent) {
+    isLoading.value = true
+  }
+  
   try {
-    const response = await fetch(`${API_BASE}/config`)
-    if (!response.ok) {
-      throw new Error('Failed to load config')
+    if (!silent) {
+      console.log('[useConfig] Loading config from Google Sheets...')
     }
-    const data = await response.json()
-    config.value = { ...DEFAULT_CONFIG, ...data }
     
+    // Load dari API
+    const sheetData = await configApi.getConfig()
+    
+    if (!silent) {
+      console.log('[useConfig] Raw data from Sheets:', sheetData)
+      console.log('[useConfig] logo sistem dari sheet:', sheetData['logo sistem'])
+      console.log('[useConfig] favicon dari sheet:', sheetData['favicon'])
+    }
+
+    // Transform ke format frontend
+    const frontendConfig = transformSheetToFrontend(sheetData)
+    
+    if (!silent) {
+      console.log('[useConfig] Transformed config:', frontendConfig)
+      console.log('[useConfig] logoUrl setelah transform:', frontendConfig.logoUrl)
+    }
+    
+    // Cek apakah ada perubahan
+    const hasChanges = JSON.stringify(config.value) !== JSON.stringify({ ...DEFAULT_CONFIG, ...frontendConfig })
+    
+    config.value = { ...DEFAULT_CONFIG, ...frontendConfig }
+    
+    if (!silent) {
+      console.log('[useConfig] Final config:', config.value)
+      console.log('[useConfig] Final logoUrl:', config.value.logoUrl ? 'ADA' : 'KOSONG')
+      console.log('[useConfig] Has changes:', hasChanges)
+    }
+
     // Set preview logo
-    if (config.value.logoUrl) {
-      previewLogo.value = config.value.logoUrl
-      updateFavicon(config.value.faviconUrl || config.value.logoUrl)
+    const logoValue = config.value.logoUrl || config.value.logoDataUrl
+    if (logoValue) {
+      previewLogo.value = logoValue
+      if (!silent) {
+        console.log('[useConfig] Logo loaded, length:', logoValue.length)
+        console.log('[useConfig] Logo preview:', logoValue.substring(0, 50) + '...')
+      }
+      updateFavicon(logoValue)
+    } else {
+      if (!silent) {
+        console.log('[useConfig] No logo found in config!')
+      }
     }
-  } catch (error) {
-    console.error('Error loading config from API, trying localStorage fallback:', error)
+
+    // Backup to localStorage
+    localStorage.setItem(CONFIG_KEY, JSON.stringify(config.value))
+    if (!silent) {
+      console.log('[useConfig] Config backed up to localStorage')
+    }
     
-    // Fallback to localStorage if API fails (for development)
+    return hasChanges
+  } catch (error) {
+    console.error('[useConfig] Error loading config from Google Sheets:', error)
+
+    // Fallback to localStorage
     try {
       const stored = localStorage.getItem(CONFIG_KEY)
       if (stored) {
         const parsed = JSON.parse(stored)
         config.value = { ...DEFAULT_CONFIG, ...parsed }
-        if (config.value.logoDataUrl) {
-          previewLogo.value = config.value.logoDataUrl
+        if (!silent) {
+          console.log('[useConfig] Loaded from localStorage fallback')
         }
-        if (config.value.faviconDataUrl) {
-          updateFavicon(config.value.faviconDataUrl)
+
+        if (config.value.logoDataUrl || config.value.logoUrl) {
+          previewLogo.value = config.value.logoDataUrl || config.value.logoUrl
+          updateFavicon(config.value.faviconDataUrl || config.value.faviconUrl || config.value.logoDataUrl || config.value.logoUrl)
         }
+      } else {
+        if (!silent) {
+          console.log('[useConfig] No localStorage fallback, using default')
+        }
+        config.value = { ...DEFAULT_CONFIG }
       }
     } catch (localError) {
-      console.error('LocalStorage fallback also failed:', localError)
+      console.error('[useConfig] LocalStorage fallback also failed:', localError)
       config.value = { ...DEFAULT_CONFIG }
     }
+    
+    return false
   } finally {
-    isLoading.value = false
+    if (!silent) {
+      isLoading.value = false
+      console.log('[useConfig] Load complete. isLoading:', isLoading.value)
+      console.log('[useConfig] Final previewLogo:', previewLogo.value ? 'ADA' : 'KOSONG')
+    }
   }
 }
 
-// ✅ Save config to API
+// ✅ Start auto-refresh config
+const startAutoRefresh = () => {
+  if (refreshInterval) {
+    console.log('[useConfig] Auto-refresh already running')
+    return
+  }
+  
+  console.log('[useConfig] Starting auto-refresh every', AUTO_REFRESH_INTERVAL / 1000, 'seconds')
+  
+  refreshInterval = setInterval(async () => {
+    console.log('[useConfig] Auto-refreshing config...')
+    const hasChanges = await loadConfig(true) // silent = true
+    if (hasChanges) {
+      console.log('[useConfig] Config changed, UI updated')
+    }
+  }, AUTO_REFRESH_INTERVAL)
+}
+
+// ✅ Stop auto-refresh
+const stopAutoRefresh = () => {
+  if (refreshInterval) {
+    clearInterval(refreshInterval)
+    refreshInterval = null
+    console.log('[useConfig] Auto-refresh stopped')
+  }
+}
+
+// ✅ Manual refresh
+const refreshConfig = async () => {
+  console.log('[useConfig] Manual refresh triggered')
+  return await loadConfig(false)
+}
+
+// ✅ Save config ke Google Sheets
 const saveConfig = async () => {
   isSaving.value = true
   try {
     config.value.lastUpdated = new Date().toISOString()
-    
-    // Update previewLogo before save
+
+    // Update previewLogo
     if (config.value.logoUrl || config.value.logoDataUrl) {
       previewLogo.value = config.value.logoUrl || config.value.logoDataUrl
     }
-    
-    // Save to API
-    const response = await fetch(`${API_BASE}/config`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(config.value)
-    })
-    
-    if (!response.ok) {
-      const errorData = await response.json()
-      throw new Error(errorData.error || 'Failed to save config')
-    }
-    
+
+    // Transform config ke format sheet
+    const sheetData = transformFrontendToSheet(config.value)
+
+    // Save via API
+    const result = await configApi.setConfig(sheetData)
+
     // Update favicon
     if (config.value.faviconUrl || config.value.faviconDataUrl) {
       updateFavicon(config.value.faviconUrl || config.value.faviconDataUrl)
     }
-    
-    // Fallback: also save to localStorage for development
-    try {
-      localStorage.setItem(CONFIG_KEY, JSON.stringify(config.value))
-    } catch (e) {
-      console.log('Could not save to localStorage')
-    }
-    
+
+    // Backup to localStorage
+    localStorage.setItem(CONFIG_KEY, JSON.stringify(config.value))
+
     if (typeof window !== 'undefined' && window.Swal) {
       window.Swal.fire({
         icon: 'success',
         title: 'Berhasil!',
-        text: 'Konfigurasi sistem berhasil disimpan',
+        text: result.message || 'Konfigurasi sistem berhasil disimpan',
         timer: 1500,
         showConfirmButton: false
       })
@@ -148,69 +277,86 @@ const saveConfig = async () => {
   }
 }
 
-// ✅ Upload logo to API
-const uploadLogo = async (file) => {
-  return new Promise((resolve, reject) => {
-    if (!file || !file.type.startsWith('image/')) {
-      reject(new Error('File harus berupa gambar (PNG, JPG, SVG)'))
-      return
+// ✅ Upload logo ke Google Drive
+const uploadLogo = async (file, deskripsi = 'logo sistem') => {
+  try {
+    const result = await configApi.uploadLogo(file, deskripsi)
+    const fileUrl = result.data.fileUrl
+
+    console.log('[useConfig] Logo uploaded:', fileUrl.substring(0, 50) + '...')
+    console.log('[useConfig] Deskripsi:', deskripsi)
+
+    // Update config HANYA field yang sesuai dengan deskripsi
+    if (deskripsi === 'logo sistem') {
+      config.value.logoUrl = fileUrl
+      config.value.logoDataUrl = fileUrl
+      previewLogo.value = fileUrl
+      
+      // Generate favicon hanya untuk logo sistem
+      await generateFaviconFromUrl(fileUrl)
+      console.log('[useConfig] Favicon generated')
+    } else if (deskripsi === 'logo perusahaan') {
+      config.value.logoPerusahaanUrl = fileUrl
+      config.value.logoPerusahaanDataUrl = fileUrl
+      console.log('[useConfig] Logo perusahaan updated, favicon NOT changed')
     }
-    if (file.size > 100 * 1024) {
-      reject(new Error('Ukuran logo maksimal 100KB'))
-      return
+
+    console.log('[useConfig] Logo save completed')
+
+    return {
+      logoUrl: fileUrl,
+      faviconUrl: config.value.faviconUrl
     }
-    
-    const formData = new FormData()
-    formData.append('logo', file)
-    
-    fetch(`${API_BASE}/upload`, {
-      method: 'POST',
-      body: formData
-    })
-    .then(response => {
-      if (!response.ok) {
-        return response.json().then(err => { throw new Error(err.error) })
-      }
-      return response.json()
-    })
-    .then(data => {
-      config.value.logoUrl = data.logoUrl
-      config.value.faviconUrl = data.faviconUrl
-      previewLogo.value = data.logoUrl
-      updateFavicon(data.faviconUrl)
-      resolve(data)
-    })
-    .catch(error => reject(error))
-  })
+  } catch (error) {
+    console.error('Error uploading logo:', error)
+    throw error
+  }
 }
 
-// ✅ Delete logo from API
+// ✅ Generate favicon dari URL
+const generateFaviconFromUrl = async (url) => {
+  try {
+    const canvas = document.createElement('canvas')
+    canvas.width = 32
+    canvas.height = 32
+    const ctx = canvas.getContext('2d')
+    
+    const img = new Image()
+    img.crossOrigin = 'anonymous'  // Penting untuk Google Drive URL
+    img.onload = () => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height)
+      ctx.drawImage(img, 0, 0, 32, 32)
+      const faviconDataUrl = canvas.toDataURL('image/png')
+      config.value.faviconUrl = faviconDataUrl
+      config.value.faviconDataUrl = faviconDataUrl
+      updateFavicon(faviconDataUrl)
+      console.log('[useConfig] Favicon generated from Google Drive URL')
+    }
+    img.onerror = (err) => {
+      console.error('[useConfig] Failed to load image from URL:', url, err)
+      // Fallback: gunakan URL langsung
+      config.value.faviconUrl = url
+      config.value.faviconDataUrl = url
+      updateFavicon(url)
+    }
+    img.src = url
+  } catch (error) {
+    console.error('[useConfig] Error generating favicon:', error)
+  }
+}
+
+// ✅ Delete logo
 const deleteLogo = async () => {
   try {
-    const logoUrl = config.value.logoUrl
-    const faviconUrl = config.value.faviconUrl
-    
-    // Call API to delete from blob storage
-    if (logoUrl || faviconUrl) {
-      await fetch(`${API_BASE}/upload`, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ logoUrl, faviconUrl })
-      })
-    }
-    
     config.value.logoUrl = null
     config.value.faviconUrl = null
     config.value.logoDataUrl = null
     config.value.faviconDataUrl = null
     previewLogo.value = null
     updateFavicon('/favicon.ico')
-    
-    // Save the change
+
     await saveConfig()
-    
+
     return true
   } catch (error) {
     console.error('Error deleting logo:', error)
@@ -223,12 +369,11 @@ const updateLogo = (logoDataUrl) => {
   config.value.logoDataUrl = logoDataUrl
   if (logoDataUrl) {
     previewLogo.value = logoDataUrl
-    // Generate favicon from logo
     generateFaviconFromImage(logoDataUrl)
   }
 }
 
-// ✅ Generate favicon from image (client-side fallback)
+// ✅ Generate favicon from image
 const generateFaviconFromImage = (dataUrl) => {
   const canvas = document.createElement('canvas')
   canvas.width = 32
@@ -249,7 +394,7 @@ const generateFaviconFromImage = (dataUrl) => {
 // ✅ Update favicon di browser
 const updateFavicon = (url) => {
   if (!url) return
-  
+
   let link = document.querySelector("link[rel~='icon']")
   if (!link) {
     link = document.createElement('link')
@@ -277,24 +422,10 @@ const resetConfig = async () => {
       if (result.isConfirmed) {
         config.value = { ...DEFAULT_CONFIG }
         previewLogo.value = null
-        
-        // Delete logo from blob storage if exists
-        if (config.value.logoUrl) {
-          try {
-            await deleteLogo()
-          } catch (error) {
-            console.error('Error deleting logo:', error)
-          }
-        }
-        
-        // Save reset config
-        await saveConfig()
-        
-        // Clear localStorage
+
         localStorage.removeItem(CONFIG_KEY)
-        
-        // Reset favicon
         updateFavicon('/favicon.ico')
+        await saveConfig()
       }
     })
   }
@@ -317,6 +448,7 @@ const getFullAddress = computed(() => {
 // Initialize on module load
 if (typeof window !== 'undefined') {
   loadConfig()
+  startAutoRefresh() // Start auto-refresh
 }
 
 export function useFrontendConfig() {
@@ -337,6 +469,9 @@ export function useFrontendConfig() {
     deleteLogo,
     resetConfig,
     loadConfig,
+    refreshConfig,      // NEW: Manual refresh
+    startAutoRefresh,   // NEW: Start auto-refresh
+    stopAutoRefresh,    // NEW: Stop auto-refresh
     updateLogo,
     updateFavicon
   }

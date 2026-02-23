@@ -747,11 +747,12 @@ import { useFrontendConfig } from '@/composables/useConfig'
 const router = useRouter()
 const { config, previewLogo } = useFrontendConfig()
 const systemName = computed(() => config.value.systemName)
-const logoUrl = computed(() => config.value.logoDataUrl || '/img/ENGwhite.png')
+// Gunakan logo sistem, fallback ke logoDataUrl, lalu default image
+const logoUrl = computed(() => config.value.logoUrl || config.value.logoDataUrl || '/img/ENGwhite.png')
 
 // ✅ Key unik untuk memaksa Vue me-reload img element saat logo berubah
 const logoKey = computed(() => {
-  return logoUrl.value.length
+  return logoUrl.value + Date.now() // Force reload saat URL berubah
 })
 
 /**

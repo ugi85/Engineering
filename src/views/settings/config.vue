@@ -8,7 +8,9 @@
           </div>
           <div class="col-sm-6">
             <ol class="breadcrumb float-sm-right">
-              <li class="breadcrumb-item"><a href="#">Home</a></li>
+              <li class="breadcrumb-item">
+                <a href="/dashChart">Home</a>
+              </li>
               <li class="breadcrumb-item active">Konfigurasi</li>
             </ol>
           </div>
@@ -58,10 +60,10 @@
                     v-model="draft.companyName" 
                     type="text" 
                     class="form-control" 
-                    placeholder="PT. AGIS INSTRUMENT SERVICES"
+                    placeholder="PT. AGIS SISTEM INDONESIA"
                   />
                 </div>
-                <div class="form-group">
+                <!-- <div class="form-group">
                   <label>Alamat Baris 1</label>
                   <input 
                     v-model="draft.addressLine1" 
@@ -138,7 +140,7 @@
                       placeholder="info@agis.co.id"
                     />
                   </div>
-                </div>
+                </div> -->
              <!-- DUA JENIS NO. REFERENSI -->
                 <div class="card card-warning mt-4">
                   <div class="card-header">
@@ -219,7 +221,7 @@
             <!-- Logo Upload -->
             <div class="card card-info">
               <div class="card-header">
-                <h3 class="card-title"><i class="fas fa-image mr-2"></i>Logo Perusahaan</h3>
+                <h3 class="card-title"><i class="fas fa-image mr-2"></i>Logo Sistem</h3>
                 <div class="card-tools">
                   <button type="button" class="btn btn-tool" data-card-widget="collapse">
                     <i class="fas fa-minus"></i>
@@ -246,7 +248,6 @@
                 </div>
                 <small class="form-text text-muted mt-2">
                   Format: PNG, JPG | Maks: 100KB<br>
-                  Logo disimpan di server (Vercel Blob) dan dapat dilihat semua pengguna<br>
                   <strong>Favicon akan otomatis dibuat dari logo</strong>
                 </small>
                 <div class="mt-3 text-center">
@@ -264,9 +265,51 @@
                 </button>
               </div>
             </div>
-            
+
+            <!-- Logo Perusahaan (untuk Print) -->
+            <div class="card card-warning mt-4">
+              <div class="card-header">
+                <h3 class="card-title"><i class="fas fa-building mr-2"></i>Logo Perusahaan (Print)</h3>
+                <div class="card-tools">
+                  <button type="button" class="btn btn-tool" data-card-widget="collapse">
+                    <i class="fas fa-minus"></i>
+                  </button>
+                </div>
+              </div>
+              <div class="card-body text-center">
+                <div class="logo-preview mx-auto mb-3">
+                  <img
+                    :src="draftCompanyLogo || config.logoPerusahaanUrl || '/logo/agis-logo.png'"
+                    alt="Logo Perusahaan Preview"
+                    class="img-fluid"
+                  />
+                </div>
+                <div class="custom-file">
+                  <input
+                    type="file"
+                    class="custom-file-input"
+                    id="companyLogoUpload"
+                    accept="image/*"
+                    @change="handleCompanyLogoUpload"
+                  />
+                  <label class="custom-file-label" for="companyLogoUpload">Pilih file logo (max 100KB)</label>
+                </div>
+                <small class="form-text text-muted mt-2">
+                  Format: PNG, JPG | Maks: 100KB<br>
+                  <strong>Digunakan untuk header print dokumen</strong>
+                </small>
+                <button
+                  @click="removeCompanyLogo"
+                  class="btn btn-sm btn-outline-danger mt-3"
+                  :disabled="!config.logoPerusahaanUrl && !config.logoPerusahaanDataUrl"
+                >
+                  <i class="fas fa-trash mr-1"></i>Hapus Logo Perusahaan
+                </button>
+              </div>
+            </div>
+
             <!-- Preview Print Header -->
-            <div class="card card-success mt-4">
+            <!-- <div class="card card-success mt-4">
               <div class="card-header">
                 <h3 class="card-title"><i class="fas fa-eye mr-2"></i>Preview Header Print</h3>
                 <div class="card-tools">
@@ -286,9 +329,7 @@
                     boxSizing: 'border-box'
                   }"
                 >
-                  <!-- Header Print dengan format baru -->
                   <div class="preview-header-new" :style="{ height: draft.print.headerHeight }">
-                    <!-- Baris 1: Nama Perusahaan (Center) -->
                     <div class="preview-company-name" :style="{ 
                       textAlign: 'center', 
                       fontSize: '18px', 
@@ -298,7 +339,6 @@
                       {{ draft.companyName }}
                     </div>
                     
-                    <!-- Baris 2: Judul Dokumen (Left) & Nomor Dokumen (Right) -->
                     <div class="preview-doc-info" style="display: flex; justify-content: space-between; margin-bottom: '5px'">
                       <div class="preview-doc-title" :style="{ 
                         fontSize: '14px', 
@@ -315,7 +355,6 @@
                       </div>
                     </div>
                     
-                    <!-- Baris 3: Tabel Header (jika diperlukan untuk preview) -->
                     <div class="preview-table-header" :style="{ 
                       fontSize: '10px',
                       borderTop: '1px solid #000',
@@ -369,9 +408,9 @@
                   Preview ini menunjukkan bagaimana header akan tampil saat dicetak
                 </small>
               </div>
-            </div>
+            </div> -->
 
-             <div class="card card-warning mt-4">
+             <!-- <div class="card card-warning mt-4">
               <div class="card-header">
                 <h3 class="card-title"><i class="fas fa-print mr-2"></i>Pengaturan Print</h3>
                 <div class="card-tools">
@@ -455,7 +494,7 @@
                   </div>
                 </div>
               </div>
-            </div>
+            </div> -->
             
           
           </div>
@@ -486,6 +525,7 @@ const {
 // local draft object used by the form; changes here are not reflected globally
 const draft = ref({ ...config.value })
 const draftLogo = ref(previewLogo.value)
+const draftCompanyLogo = ref(null) // For company logo preview
 const isSavingLocal = ref(false) // Flag untuk mencegah watch trigger saat save
 const isUploading = ref(false)
 
@@ -649,6 +689,91 @@ const removeLogo = async () => {
   }
 }
 
+// ✅ HAPUS LOGO PERUSAHAAN
+const removeCompanyLogo = async () => {
+  if (window.Swal) {
+    window.Swal.fire({
+      icon: 'warning',
+      title: 'Hapus logo perusahaan?',
+      text: 'Logo perusahaan yang digunakan untuk print akan dihapus.',
+      showCancelButton: true,
+      confirmButtonColor: '#d33',
+      cancelButtonColor: '#3085d6',
+      confirmButtonText: 'Ya, hapus',
+      cancelButtonText: 'Batal'
+    }).then(async (result) => {
+      if (result.isConfirmed) {
+        try {
+          draft.value.logoPerusahaanUrl = null
+          draft.value.logoPerusahaanDataUrl = null
+          draftCompanyLogo.value = null
+
+          await deleteLogo('logo perusahaan')
+
+          if (window.Swal) {
+            window.Swal.fire({
+              icon: 'success',
+              title: 'Berhasil!',
+              text: 'Logo perusahaan berhasil dihapus',
+              timer: 1500,
+              showConfirmButton: false
+            })
+          }
+        } catch (error) {
+          if (window.Swal) {
+            window.Swal.fire({
+              icon: 'error',
+              title: 'Gagal!',
+              text: error.message || 'Terjadi kesalahan saat menghapus logo perusahaan',
+              confirmButtonText: 'OK'
+            })
+          }
+        }
+      }
+    })
+  }
+}
+
+// ✅ UPLOAD LOGO PERUSAHAAN
+const handleCompanyLogoUpload = async (event) => {
+  const file = event.target.files[0]
+  if (!file) return
+
+  if (!file.type.startsWith('image/')) {
+    if (window.Swal) {
+      window.Swal.fire({ icon: 'error', title: 'Gagal Upload!', text: 'File harus berupa gambar', confirmButtonText: 'OK' })
+    }
+    return
+  }
+  if (file.size > 100 * 1024) {
+    if (window.Swal) {
+      window.Swal.fire({ icon: 'error', title: 'Gagal Upload!', text: 'Ukuran maksimal 100KB', confirmButtonText: 'OK' })
+    }
+    return
+  }
+
+  if (window.Swal) {
+    window.Swal.fire({ title: 'Mengupload...', text: 'Logo perusahaan sedang diupload', allowOutsideClick: false, didOpen: () => { window.Swal.showLoading() } })
+  }
+
+  try {
+    const result = await uploadLogo(file, 'logo perusahaan')
+    draftCompanyLogo.value = result.logoUrl
+    draft.value.logoPerusahaanUrl = result.logoUrl
+    draft.value.logoPerusahaanDataUrl = result.logoUrl
+
+    if (window.Swal) {
+      window.Swal.fire({ icon: 'success', title: 'Berhasil!', text: 'Logo perusahaan berhasil diupload', timer: 1500, showConfirmButton: false })
+    }
+  } catch (error) {
+    if (window.Swal) {
+      window.Swal.fire({ icon: 'error', title: 'Gagal Upload!', text: error.message, confirmButtonText: 'OK' })
+    }
+  }
+
+  event.target.value = ''
+}
+
 // ✅ FORMAT TANGGAL
 const formatDate = (dateString) => {
   if (!dateString) return '-'
@@ -665,28 +790,25 @@ const formatDate = (dateString) => {
 // ✅ CONFIRM AND APPLY DRAFT - Save to API
 const confirmAndSave = async () => {
   const doSave = async () => {
-    // Set flag untuk mencegah watch trigger
     isSavingLocal.value = true
 
-    // Update logo dari draft
     if (draftLogo.value) {
       draft.value.logoUrl = draftLogo.value
     }
 
-    // Update config dari draft
+    if (draftCompanyLogo.value) {
+      draft.value.logoPerusahaanUrl = draftCompanyLogo.value
+    }
+
     Object.keys(draft.value).forEach(key => {
       config.value[key] = draft.value[key]
     })
 
-    // Update previewLogo di composable
     if (draftLogo.value) {
       previewLogo.value = draftLogo.value
     }
 
-    // Simpan ke API (Vercel Blob)
     await saveConfig()
-
-    // Reset flag setelah save selesai
     isSavingLocal.value = false
   }
 
@@ -702,13 +824,11 @@ const confirmAndSave = async () => {
       if (result.isConfirmed) {
         await doSave()
       } else {
-        // revert draft back to current config
         draft.value = { ...config.value }
         draftLogo.value = previewLogo.value
       }
     })
   } else {
-    // fallback without confirmation
     await doSave()
   }
 }

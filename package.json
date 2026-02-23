@@ -10,7 +10,6 @@
     "postinstall": "chmod +x node_modules/.bin/vite"
   },
   "dependencies": {
-    "@vercel/blob": "^2.3.0",
     "axios": "^1.13.2",
     "chart.js": "^4.5.1",
     "pinia": "^3.0.4",

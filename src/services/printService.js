@@ -11,6 +11,7 @@ export const printService = {
     const systemVersion = config.value.systemVersion
     const companyName = config.value.companyName
     const logoUrl = getLogoUrl.value
+    const logoPerusahaanUrl = config.value.logoPerusahaanUrl || config.value.logoPerusahaanDataUrl
     const addressHtml = getFullAddress.value
     const documentRef = isCalibration
       ? config.value.documentRefCalibration
@@ -78,6 +79,20 @@ export const printService = {
             margin-bottom: 3px;
             border-bottom: 2px solid #000;
             padding-bottom: 3px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+          }
+
+          .header-left {
+            flex: 1;
+          }
+
+          .header-right {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 2px;
           }
 
           .header-line {
@@ -102,6 +117,12 @@ export const printService = {
 
           .doc-number {
             font-size: 10px;
+          }
+
+          .company-logo {
+            max-height: 40px;
+            max-width: 120px;
+            object-fit: contain;
           }
 
           .print-footer {
@@ -160,9 +181,14 @@ export const printService = {
       </head>
       <body>
         <div class="header-info">
-          <div class="header-line company-name">${companyName}</div>
-          <div class="header-line doc-title">Judul Dokumen : ${title}</div>
-          <div class="header-line doc-number">Nomor Dokumen : ${documentRef}</div>
+          <div class="header-left">
+            <div class="header-line company-name">${companyName}</div>
+            <div class="header-line doc-title">Judul Dokumen : ${title}</div>
+            <div class="header-line doc-number">Nomor Dokumen : ${documentRef}</div>
+          </div>
+          <div class="header-right">
+            ${showLogo && logoPerusahaanUrl ? `<img src="${logoPerusahaanUrl}" alt="Logo Perusahaan" class="company-logo" />` : ''}
+          </div>
         </div>
 
         ${tableContent}

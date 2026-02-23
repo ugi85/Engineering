@@ -80,12 +80,12 @@
 
         <!-- Chart Section -->
         <div class="row">
-          <div class="col-12">
+          <div class="col-md-8">
             <div class="card">
               <div class="card-header border-0">
                 <h3 class="card-title">
                   <i class="fas fa-chart-line mr-1"></i>
-                  Aktivitas Kalibrasi & PM 
+                  Aktivitas Kalibrasi & PM
                 </h3>
                 <div class="card-tools">
                   <button type="button" class="btn btn-tool" data-card-widget="collapse">
@@ -125,6 +125,44 @@
                     <i class="fas fa-chart-bar fa-3x text-muted mb-3"></i>
                     <p class="text-muted">Tidak ada data untuk ditampilkan</p>
                   </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Pie Chart: Current Month Activity -->
+          <div class="col-md-4">
+            <div class="card">
+              <div class="card-header border-0">
+                <h3 class="card-title">
+                  <i class="fas fa-chart-pie mr-1"></i>
+                  Aktivitas Bulan Ini
+                </h3>
+                <div class="card-tools">
+                  <button type="button" class="btn btn-tool" data-card-widget="collapse">
+                    <i class="fas fa-minus"></i>
+                  </button>
+                </div>
+              </div>
+              <div class="card-body">
+                <div class="position-relative" style="height: 360px">
+                  <canvas ref="pieChartRef"></canvas>
+
+                  <!-- Loading Overlay -->
+                  <div v-if="loading" class="chart-overlay">
+                    <div class="spinner-border text-primary" role="status">
+                      <span class="sr-only">Loading...</span>
+                    </div>
+                  </div>
+
+                  <!-- No Data Overlay -->
+                  <div v-if="!loading && !hasCurrentMonthData" class="chart-overlay">
+                    <i class="fas fa-chart-pie fa-3x text-muted mb-3"></i>
+                    <p class="text-muted">Tidak ada aktivitas bulan ini</p>
+                  </div>
+                </div>
+                <div class="mt-3 text-center">
+                  <small class="text-muted">{{ currentMonthName }} {{ selectedYear }}</small>
                 </div>
               </div>
             </div>
@@ -255,14 +293,107 @@ const {
   chartOptions,
   currentMonth,
   currentMonthRemaining,
+  currentMonthStats,
   fetchDashboardData,
   startAutoRefresh,
   stopAutoRefresh
 } = useDashboard()
 
 const chartRef = ref(null)
+const pieChartRef = ref(null)
 let chartInstance = null
+let pieChartInstance = null
 const retrying = ref(false)
+
+// Computed: Nama bulan saat ini
+const currentMonthName = computed(() => {
+  const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 
+                  'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember']
+  return months[new Date().getMonth()]
+})
+
+// Computed: Cek apakah ada data bulan ini
+const hasCurrentMonthData = computed(() => {
+  const stats = currentMonthStats.value
+  return stats && (stats.kalibrasiCount > 0 || stats.pmCount > 0 || 
+                   stats.kalibrasiExecuted > 0 || stats.pmExecuted > 0)
+})
+
+// Computed: Data untuk Pie Chart
+const pieChartData = computed(() => {
+  const stats = currentMonthStats.value
+  if (!stats) return { labels: [], datasets: [] }
+
+  const labels = []
+  const data = []
+  const backgroundColor = []
+
+  // Kalibrasi Scheduled (belum dilaksanakan) - Biru (sama dengan chart line)
+  if (stats.kalibrasiCount > stats.kalibrasiExecuted) {
+    labels.push('Kalibrasi')
+    data.push(stats.kalibrasiCount - stats.kalibrasiExecuted)
+    backgroundColor.push('#6298ef') // Biru - sama dengan chart line Kalibrasi
+  }
+
+  // Kalibrasi Executed (sudah dilaksanakan) - Hijau
+  if (stats.kalibrasiExecuted > 0) {
+    labels.push('Kalibrasi Done')
+    data.push(stats.kalibrasiExecuted)
+    backgroundColor.push('#f14777') // Hijau muda
+  }
+
+  // PM Scheduled (belum dilaksanakan) - Hijau (sama dengan chart line)
+  if (stats.pmCount > stats.pmExecuted) {
+    labels.push('PM ')
+    data.push(stats.pmCount - stats.pmExecuted)
+    backgroundColor.push('#43c566') // Hijau - sama dengan chart line PM
+  }
+
+  // PM Executed (sudah dilaksanakan) - Orange
+  if (stats.pmExecuted > 0) {
+    labels.push('PM Done')
+    data.push(stats.pmExecuted)
+    backgroundColor.push('#f7d148') // Orange/merah muda
+  }
+
+  return {
+    labels,
+    datasets: [{
+      data,
+      backgroundColor,
+      borderWidth: 2,
+      borderColor: '#fff'
+    }]
+  }
+})
+
+// Computed: Opsi Pie Chart
+const pieChartOptions = computed(() => ({
+  responsive: true,
+  maintainAspectRatio: false,
+  plugins: {
+    legend: {
+      position: 'bottom',
+      labels: {
+        padding: 10,
+        font: {
+          size: 11
+        }
+      }
+    },
+    tooltip: {
+      callbacks: {
+        label: function(context) {
+          const label = context.label || ''
+          const value = context.parsed || 0
+          const total = context.dataset.data.reduce((a, b) => a + b, 0)
+          const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : 0
+          return `${label}: ${value} (${percentage}%)`
+        }
+      }
+    }
+  }
+}))
 
 // Computed: Cek apakah ada data
 const hasData = computed(() => {
@@ -275,13 +406,28 @@ const initChart = () => {
   if (chartInstance) {
     chartInstance.destroy()
   }
-  
+
   if (chartRef.value && hasData.value) {
     // ✅ FIX: Tambahkan "data:" sebelum chartData.value
     chartInstance = new Chart(chartRef.value, {
       type: 'line',
       data: chartData.value,  // ← INI YANG DIPERBAIKI
       options: chartOptions.value
+    })
+  }
+}
+
+// ✅ INISIALISASI PIE CHART
+const initPieChart = () => {
+  if (pieChartInstance) {
+    pieChartInstance.destroy()
+  }
+
+  if (pieChartRef.value && hasCurrentMonthData.value) {
+    pieChartInstance = new Chart(pieChartRef.value, {
+      type: 'pie',
+      data: pieChartData.value,
+      options: pieChartOptions.value
     })
   }
 }
@@ -296,6 +442,20 @@ watch([kalibrasiMonthly, pmMonthly], () => {
     } else {
       // Initialize chart for the first time
       initChart()
+    }
+  }
+})
+
+// ✅ WATCH UNTUK UPDATE PIE CHART SAAT DATA BERUBAH
+watch([currentMonthStats], () => {
+  if (!loading.value && pieChartRef.value) {
+    if (pieChartInstance) {
+      // Update existing pie chart
+      pieChartInstance.data = pieChartData.value
+      pieChartInstance.update('active')
+    } else {
+      // Initialize pie chart for the first time
+      initPieChart()
     }
   }
 })
@@ -323,10 +483,13 @@ onMounted(() => {
 onUnmounted(() => {
   // ✅ STOP AUTO-REFRESH
   stopAutoRefresh()
-  
+
   // ✅ DESTROY CHART
   if (chartInstance) {
     chartInstance.destroy()
+  }
+  if (pieChartInstance) {
+    pieChartInstance.destroy()
   }
 })
 </script>

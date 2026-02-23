@@ -263,14 +263,29 @@ export function useDashboard() {
   // ✅ SISA JADWAL BULAN SAAT INI (TOTAL - EXECUTED)
   const currentMonthRemaining = computed(() => {
     const currentMonthName = currentMonth.value
-    
+
     const kalibrasiItem = kalibrasiMonthly.value.find(m => m.month === currentMonthName)
     const pmItem = pmMonthly.value.find(m => m.month === currentMonthName)
-    
+
     const kalibrasiRemaining = kalibrasiItem ? (kalibrasiItem.count - kalibrasiItem.executed) : 0
     const pmRemaining = pmItem ? (pmItem.count - pmItem.executed) : 0
-    
+
     return kalibrasiRemaining + pmRemaining
+  })
+
+  // ✅ STATISTIK BULAN SAAT INI (UNTUK PIE CHART)
+  const currentMonthStats = computed(() => {
+    const currentMonthName = currentMonth.value
+
+    const kalibrasiItem = kalibrasiMonthly.value.find(m => m.month === currentMonthName)
+    const pmItem = pmMonthly.value.find(m => m.month === currentMonthName)
+
+    return {
+      kalibrasiCount: kalibrasiItem ? kalibrasiItem.count : 0,
+      kalibrasiExecuted: kalibrasiItem ? kalibrasiItem.executed : 0,
+      pmCount: pmItem ? pmItem.count : 0,
+      pmExecuted: pmItem ? pmItem.executed : 0
+    }
   })
 
   return {
@@ -284,13 +299,14 @@ export function useDashboard() {
     pmMonthly,
     selectedYear,
     isInitialized,
-    
+
     // Computed
     chartData,
     chartOptions,
     currentMonth,
     currentMonthRemaining,
-    
+    currentMonthStats,
+
     // Methods
     fetchDashboardData,
     refreshData,

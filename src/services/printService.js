@@ -3,7 +3,7 @@ import { useFrontendConfig } from '@/composables/useConfig'
 
 export const printService = {
   // ✅ GENERATE PRINT HTML DENGAN KONFIGURASI DINAMIS
-  generatePrintHtml(title, tableContent, period = '', isCalibration = false) {
+  generatePrintHtml(title, tableContent, period = '', isCalibration = false, periodLabel = '', showDocumentNumber = true) {
     const { config, getLogoUrl, getFullAddress } = useFrontendConfig()
 
     // Ambil nilai konfigurasi
@@ -16,6 +16,7 @@ export const printService = {
     const documentRef = isCalibration
       ? config.value.documentRefCalibration
       : config.value.documentRefEquipment
+    const documentRefDisplay = showDocumentNumber ? documentRef : 'N/A'
     const orientation = config.value.print.orientation
     const margin = config.value.print.margin
     const headerHeight = config.value.print.headerHeight
@@ -125,6 +126,13 @@ export const printService = {
             object-fit: contain;
           }
 
+          .period-label {
+            font-size: 10px;
+            font-weight: bold;
+            margin-top: 2px;
+            text-align: right;
+          }
+
           .print-footer {
             margin-top: 8px;
             padding-top: 5px;
@@ -184,10 +192,11 @@ export const printService = {
           <div class="header-left">
             <div class="header-line company-name">${companyName}</div>
             <div class="header-line doc-title">Judul Dokumen : ${title}</div>
-            <div class="header-line doc-number">Nomor Dokumen : ${documentRef}</div>
+            <div class="header-line doc-number">Nomor Dokumen : ${documentRefDisplay}</div>
           </div>
           <div class="header-right">
             ${showLogo && logoPerusahaanUrl ? `<img src="${logoPerusahaanUrl}" alt="Logo Perusahaan" class="company-logo" />` : ''}
+            ${period && periodLabel ? `<div class="period-label">${periodLabel} ${period}</div>` : ''}
           </div>
         </div>
 
@@ -195,7 +204,7 @@ export const printService = {
 
         <div class="print-footer">
           <div class="footer-left">
-            <div class="footer-timestamp">Dicetak pada: ${printDate} | ${systemName} v${systemVersion}</div>
+            <div class="footer-timestamp">Dicetak: ${printDate} | ${systemName} v${systemVersion}</div>
           </div>
         </div>
 
@@ -356,7 +365,7 @@ export const printService = {
       'Jadwal Kalibrasi',
       tableContent,
       `${month} ${year}`,
-      true // INI JADWAL KALIBRASI
+      false, // INI JADWAL KALIBRASI
     )
 
     printWindow.document.write(html)
@@ -426,10 +435,11 @@ export const printService = {
     }
 
     const html = this.generatePrintHtml(
-      'Log Kalibrasi',
+      'Monitoring Kalibrasi Bulanan',
       tableContent,
       `${month} ${year}`,
-      true // INI LOG KALIBRASI
+      true, // INI LOG KALIBRASI
+      'Jadwal Kalibrasi'
     )
 
     printWindow.document.write(html)
@@ -497,10 +507,11 @@ export const printService = {
     }
 
     const html = this.generatePrintHtml(
-      'Log PM',
+      'Daftar Peralatan & Jadwal Perawatan',
       tableContent,
       `${month} ${year}`,
-      false // BUKAN LOG KALIBRASI
+      false, // BUKAN LOG KALIBRASI
+      'Jadwal PM'
     )
 
     printWindow.document.write(html)
@@ -566,7 +577,9 @@ export const printService = {
       'Log Aktivitas',
       tableContent,
       `${month} ${year}`,
-      false // BUKAN LOG KALIBRASI
+      false, // BUKAN LOG KALIBRASI
+      '', // Tidak ada period label
+      false // Tidak tampilkan nomor dokumen
     )
 
     printWindow.document.write(html)

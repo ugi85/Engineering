@@ -1,98 +1,170 @@
+<script setup>
+import { ref, watch, onMounted, computed, onUnmounted } from 'vue'
+import { usePermissions } from '@/composables/usePermissions'
+
+const permission = usePermissions()
+
+// Key untuk force re-render saat permission berubah
+const renderKey = ref(0)
+
+// System name from config
+const systemName = ref('EEHS Dashboard')
+const logoUrl = ref('/favicon.ico')
+const logoKey = ref(0)
+
+// Computed untuk login status - akses .value karena permission.isLoggedIn sudah computed
+const isLoggedIn = computed(() => permission.isLoggedIn.value)
+
+// Computed untuk permission checks
+const canViewUsers = computed(() => permission.can('user:view'))
+const canViewDaftarAlat = computed(() => permission.can('daftarAlat:view'))
+const canViewJadwalKalibrasi = computed(() => permission.can('jadwalKalibrasi:view'))
+const canViewLogAktivitas = computed(() => permission.can('logAktivitas:view'))
+const canViewConfig = computed(() => permission.can('config:view'))
+
+// Computed untuk cek apakah user adalah superadmin
+const isSuperAdmin = computed(() => {
+  if (!isLoggedIn.value) {
+    console.log('[Sidebar] isSuperAdmin - Not logged in')
+    return false
+  }
+  const user = permission.user.value
+  console.log('[Sidebar] isSuperAdmin - User:', user, 'Role:', user?.role)
+  // Check role = 'superadmin' OR email starts with 'super@'
+  return user && (
+    (user.role && user.role.toLowerCase() === 'superadmin') ||
+    (user.email && user.email.toLowerCase().startsWith('super@'))
+  )
+})
+
+// Force refresh sidebar saat permission berubah
+const handlePermissionChange = () => {
+  console.log('[Sidebar] Permission changed - forcing re-render')
+  renderKey.value++
+}
+
+// Function to load config
+const loadConfig = () => {
+  try {
+    const config = localStorage.getItem('qms_frontend_config_v2')
+    if (config) {
+      const parsed = JSON.parse(config)
+
+      // Load system name
+      if (parsed.systemName) {
+        systemName.value = parsed.systemName
+      }
+
+      // Load logo - priority: logoDataUrl > logoUrl > favicon
+      if (parsed.logoDataUrl && parsed.logoDataUrl.trim() !== '') {
+        logoUrl.value = parsed.logoDataUrl
+      } else if (parsed.logoUrl && parsed.logoUrl.trim() !== '') {
+        logoUrl.value = parsed.logoUrl
+      } else {
+        logoUrl.value = '/favicon.ico'
+      }
+
+      logoKey.value++
+
+      // Update favicon in document head
+      const link = document.querySelector("link[rel~='icon']")
+      if (link) {
+        if (parsed.faviconDataUrl) {
+          link.href = parsed.faviconDataUrl
+        } else if (parsed.faviconUrl) {
+          link.href = parsed.faviconUrl
+        } else {
+          link.href = '/favicon.ico'
+        }
+      }
+    }
+  } catch (e) {
+    console.error('Error loading config:', e)
+  }
+}
+
+// Load config on mount
+onMounted(() => {
+  loadConfig()
+  
+  // Listen untuk permission changes
+  window.addEventListener('permissions-changed', handlePermissionChange)
+  
+  console.log('[Sidebar] Mounted - watching for permission changes')
+})
+
+onUnmounted(() => {
+  window.removeEventListener('permissions-changed', handlePermissionChange)
+})
+
+// Watch for config changes
+watch(
+  () => localStorage.getItem('qms_frontend_config_v2'),
+  () => {
+    loadConfig()
+  }
+)
+
+// Handle logout
+const handleLogout = () => {
+  permission.logout()
+}
+</script>
+
 <template>
-     <aside class="main-sidebar sidebar-dark-primary elevation-4">
+  <aside class="main-sidebar sidebar-dark-primary elevation-4">
     <!-- Brand Logo -->
-    <!-- <a href="/" class="brand-link"> -->
-      <RouterLink to="/dashChart" class="brand-link">
-      <img :key="logoKey" :src="logoUrl" :alt="systemName + ' Logo'" class="brand-image img-circle elevation-3" style="opacity: .8">
+    <RouterLink to="/dashChart" class="brand-link">
+      <img
+        :key="logoKey"
+        :src="logoUrl"
+        :alt="systemName + ' Logo'"
+        class="brand-image img-circle elevation-3"
+        style="opacity: .8"
+        @error="logoUrl = '/favicon.ico'; logoKey++"
+      >
       <span class="brand-text font-weight-light">{{ systemName }}</span>
-    <!-- </a> -->
     </RouterLink>
 
     <!-- Sidebar -->
     <div class="sidebar">
-      <!-- Sidebar user panel (optional) -->
-      <!-- <div class="user-panel mt-3 pb-3 mb-3 d-flex">
-        <div class="image">
-          <img src="/img/user2-160x160.jpg" class="img-circle elevation-2" alt="User Image">
-        </div>
-        <div class="info">
-          <a href="#" class="d-block">Alexander Pierce</a>
-        </div>
-      </div> -->
-
-      <!-- SidebarSearch Form -->
-      <!-- <div class="form-inline">
-        <div class="input-group" data-widget="sidebar-search">
-          <input class="form-control form-control-sidebar" type="search" placeholder="Search" aria-label="Search">
-          <div class="input-group-append">
-            <button class="btn btn-sidebar">
-              <i class="fas fa-search fa-fw"></i>
-            </button>
-          </div>
-        </div>
-      </div> -->
-
       <!-- Sidebar Menu -->
       <nav class="mt-2">
         <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu" data-accordion="false">
-          <!-- Add icons to the links using the .nav-icon class
-               with font-awesome or any other icon font library -->
           <li class="nav-item menu-open">
-            <!-- <a href="#" class="nav-link active">
-              <i class="nav-icon fas fa-tachometer-alt"></i>
-              <p>
-                Dashboard
-                <i class="right fas fa-angle-left"></i>
-              </p>
-            </a> -->
             <ul class="nav nav-treeview">
-             
-              <!-- <li class="nav-item">
-                  <RouterLink to="/" class="nav-link">
-                  <i class="far fa-circle nav-icon"></i>
-                  <p>Dashboard v1</p>
-                  </RouterLink>
-              </li>
-              <li class="nav-item">
-                <RouterLink to="/dashboardV2" class="nav-link">
-                  <i class="far fa-circle nav-icon"></i>
-                  <p>Dashboard v2</p>
-                </RouterLink>
-              </li>
-              <li class="nav-item">
-                <RouterLink to="/dashboardV3" class="nav-link">
-                  <i class="far fa-circle nav-icon"></i>
-                  <p>Dashboard v3</p>
-                </RouterLink>
-              </li> -->
+              <!-- Dashboard - Selalu tampil untuk semua orang -->
               <li class="nav-item">
                 <RouterLink to="/dashChart" class="nav-link">
                   <i class="fas fa-tachometer-alt nav-icon"></i>
                   <p>Dashboard Chart</p>
                 </RouterLink>
               </li>
-              <li class="nav-item">
+
+              <!-- Menu di bawah ini tampil untuk semua (public + login) -->
+              <li class="nav-item" v-if="canViewUsers" :key="'users-' + renderKey">
+                <RouterLink to="/user" class="nav-link">
+                  <i class="fas fa-users nav-icon"></i>
+                  <p>Data Users</p>
+                </RouterLink>
+              </li>
+              <li class="nav-item" v-if="canViewDaftarAlat" :key="'daftarAlat-' + renderKey">
                 <RouterLink to="/daftarAlat" class="nav-link">
                   <i class="fas fa-tools nav-icon"></i>
                   <p>Daftar Alat</p>
                 </RouterLink>
               </li>
-              <li class="nav-item">
+              <li class="nav-item" v-if="canViewJadwalKalibrasi" :key="'jadwalKalibrasi-' + renderKey">
                 <RouterLink to="/jadwalKalibrasi" class="nav-link">
                   <i class="fas fa-balance-scale nav-icon"></i>
                   <p>Jadwal Kalibrasi</p>
                 </RouterLink>
               </li>
-              <!-- <li class="nav-item">
-                <RouterLink to="/chartMonitoring" class="nav-link">
-                  <i class="far fa-circle nav-icon"></i>
-                  <p>ChartMonitoring</p>
-                </RouterLink>
-              </li> -->
             </ul>
           </li>
 
-          <li class="nav-item">
+          <!-- Log Aktifitas - Tampil untuk semua (public + login) -->
+          <li class="nav-item" v-if="canViewLogAktivitas" :key="'logAktivitas-' + renderKey">
             <a href="#" class="nav-link">
               <i class="nav-icon fas fa-edit"></i>
               <p>
@@ -113,667 +185,41 @@
                   <p>Log PM</p>
                 </RouterLink>
               </li>
-              <li class="nav-item">
+              <li class="nav-item" v-if="isLoggedIn">
                 <RouterLink to="/allAktivitas" class="nav-link">
                   <i class="far fa-circle nav-icon"></i>
                   <p>All Aktivitas</p>
                 </RouterLink>
               </li>
-              
             </ul>
           </li>
-           <li class="nav-item">
+
+          <!-- Settings - Hanya untuk LOGIN -->
+          <li class="nav-item" v-if="isLoggedIn && canViewConfig" :key="'settings-' + renderKey">
+            <a href="#" class="nav-link">
+              <i class="fas fa-cogs nav-icon"></i>
+              <p>
+                Settings
+                <i class="right fas fa-angle-left"></i>
+              </p>
+            </a>
+            <ul class="nav nav-treeview">
+              <li class="nav-item" v-if="canViewConfig" :key="'configurasi-' + renderKey">
                 <RouterLink to="/configurasi" class="nav-link">
-                  <i class="fas fa-cogs nav-icon"></i>
-                  <p> Settings</p>
+                  <i class="far fa-circle nav-icon"></i>
+                  <p>Konfigurasi Sistem</p>
                 </RouterLink>
               </li>
-          <!-- <li class="nav-item">
-            <RouterLink to="/widgets" class="nav-link">
-              <i class="nav-icon fas fa-th"></i>
-              <p>
-                Widgets
-                <span class="right badge badge-danger">New</span>
-              </p>
-            </RouterLink>
-          </li>
-          <li class="nav-item">
-            <a href="#" class="nav-link">
-              <i class="nav-icon fas fa-copy"></i>
-              <p>
-                Layout Options
-                <i class="fas fa-angle-left right"></i>
-                <span class="badge badge-info right">6</span>
-              </p>
-            </a>
-            <ul class="nav nav-treeview">
-              <li class="nav-item">
-                <RouterLink to="/top-nav" class="nav-link">
+              <li class="nav-item" v-if="isSuperAdmin" :key="'roles-' + renderKey">
+                <RouterLink to="/roles" class="nav-link">
                   <i class="far fa-circle nav-icon"></i>
-                  <p>Top Navigation</p>
-                </RouterLink>
-              </li>
-              <li class="nav-item">
-                <RouterLink to="/top-nav-sidebar" class="nav-link">
-                  <i class="far fa-circle nav-icon"></i>
-                  <p>Top Navigation + Sidebar</p>
-                </RouterLink>
-              </li>
-              <li class="nav-item">
-                <RouterLink to="/boxed" class="nav-link">
-                  <i class="far fa-circle nav-icon"></i>
-                  <p>Boxed</p>
-                </RouterLink>
-              </li>
-              <li class="nav-item">
-                <a href="#" class="nav-link">
-                  <i class="far fa-circle nav-icon"></i>
-                  <p>Fixed Sidebar</p>
-                </a>
-              </li>
-              <li class="nav-item">
-                <a href="#" class="nav-link">
-                  <i class="far fa-circle nav-icon"></i>
-                  <p>Fixed Sidebar <small>+ Custom Area</small></p>
-                </a>
-              </li>
-              <li class="nav-item">
-                <a href="#" class="nav-link">
-                  <i class="far fa-circle nav-icon"></i>
-                  <p>Fixed Navbar</p>
-                </a>
-              </li>
-              <li class="nav-item">
-                <a href="#" class="nav-link">
-                  <i class="far fa-circle nav-icon"></i>
-                  <p>Fixed Footer</p>
-                </a>
-              </li>
-              <li class="nav-item">
-                <a href="#" class="nav-link">
-                  <i class="far fa-circle nav-icon"></i>
-                  <p>Collapsed Sidebar</p>
-                </a>
-              </li>
-            </ul>
-          </li>
-          <li class="nav-item">
-            <a href="#" class="nav-link">
-              <i class="nav-icon fas fa-chart-pie"></i>
-              <p>
-                Charts
-                <i class="right fas fa-angle-left"></i>
-              </p>
-            </a>
-            <ul class="nav nav-treeview">
-              <li class="nav-item">
-                <RouterLink to="/charts" class="nav-link">
-                  <i class="far fa-circle nav-icon"></i>
-                  <p>ChartJS</p>
-                </RouterLink>
-              </li>
-              <li class="nav-item">
-                <RouterLink to="/charts/flot" class="nav-link">
-                  <i class="far fa-circle nav-icon"></i>
-                  <p>Flot</p>
-                </RouterLink>
-              </li>
-              <li class="nav-item">
-                <RouterLink to="/charts/inline" class="nav-link">
-                  <i class="far fa-circle nav-icon"></i>
-                  <p>Inline</p>
-                </RouterLink>
-              </li>
-              <li class="nav-item">
-                <RouterLink to="/charts/uplot" class="nav-link">
-                  <i class="far fa-circle nav-icon"></i>
-                  <p>uPlot</p>
+                  <p>Roles & Permissions</p>
                 </RouterLink>
               </li>
             </ul>
           </li>
-          <li class="nav-item">
-            <a href="#" class="nav-link">
-              <i class="nav-icon fas fa-tree"></i>
-              <p>
-                UI Elements
-                <i class="fas fa-angle-left right"></i>
-              </p>
-            </a>
-            <ul class="nav nav-treeview">
-              <li class="nav-item">
-                <RouterLink to="/ui/general" class="nav-link">
-                  <i class="far fa-circle nav-icon"></i>
-                  <p>General</p>
-                </RouterLink>
-              </li>
-              <li class="nav-item">
-                <RouterLink to="/ui/icons" class="nav-link">
-                  <i class="far fa-circle nav-icon"></i>
-                  <p>Icons</p>
-                </RouterLink>
-              </li>
-              <li class="nav-item">
-                <RouterLink to="/ui/buttons" class="nav-link">
-                  <i class="far fa-circle nav-icon"></i>
-                  <p>Buttons</p>
-                </RouterLink>
-              </li>
-              <li class="nav-item">
-                <RouterLink to="/ui/sliders" class="nav-link">
-                  <i class="far fa-circle nav-icon"></i>
-                  <p>Sliders</p>
-                </RouterLink>
-              </li>
-              <li class="nav-item">
-                <RouterLink to="/ui/modals" class="nav-link">
-                  <i class="far fa-circle nav-icon"></i>
-                  <p>Modals & Alerts</p>
-                </RouterLink>
-              </li>
-              <li class="nav-item">
-                <RouterLink to="/ui/navbar" class="nav-link">
-                  <i class="far fa-circle nav-icon"></i>
-                  <p>Navbar & Tabs</p>
-                </RouterLink>
-              </li>
-              <li class="nav-item">
-                <RouterLink to="/ui/timeline" class="nav-link">
-                  <i class="far fa-circle nav-icon"></i>
-                  <p>Timeline</p>
-                </RouterLink>
-              </li>
-              <li class="nav-item">
-                <RouterLink to="/ui/ribbons" class="nav-link">
-                  <i class="far fa-circle nav-icon"></i>
-                  <p>Ribbons</p>
-                </RouterLink>
-              </li>
-            </ul>
-          </li>
-          <li class="nav-item">
-            <a href="#" class="nav-link">
-              <i class="nav-icon fas fa-edit"></i>
-              <p>
-                Forms
-                <i class="fas fa-angle-left right"></i>
-              </p>
-            </a>
-            <ul class="nav nav-treeview">
-              <li class="nav-item">
-                <RouterLink to="/forms/general" class="nav-link">
-                  <i class="far fa-circle nav-icon"></i>
-                  <p>General Elements</p>
-                </RouterLink>
-              </li>
-              <li class="nav-item">
-                <RouterLink to="/forms/advanced" class="nav-link">
-                  <i class="far fa-circle nav-icon"></i>
-                  <p>Advanced Elements</p>
-                </RouterLink>
-              </li>
-              <li class="nav-item">
-                <RouterLink to="/forms/editors" class="nav-link">
-                  <i class="far fa-circle nav-icon"></i>
-                  <p>Editors</p>
-                </RouterLink>
-              </li>
-              <li class="nav-item">
-                <RouterLink to="/forms/validation" class="nav-link">
-                  <i class="far fa-circle nav-icon"></i>
-                  <p>Validation</p>
-                </RouterLink>
-              </li>
-            </ul>
-          </li>
-          <li class="nav-item">
-            <a href="#" class="nav-link">
-              <i class="nav-icon fas fa-table"></i>
-              <p>
-                Tables
-                <i class="fas fa-angle-left right"></i>
-              </p>
-            </a>
-            <ul class="nav nav-treeview">
-              <li class="nav-item">
-                <RouterLink to="/tables/simple" class="nav-link">
-                  <i class="far fa-circle nav-icon"></i>
-                  <p>Simple Tables</p>
-                </RouterLink>
-              </li>
-              <li class="nav-item">
-                <RouterLink to="/tables/data" class="nav-link">
-                  <i class="far fa-circle nav-icon"></i>
-                  <p>DataTables</p>
-                </RouterLink>
-              </li>
-              <li class="nav-item">
-                <RouterLink to="/tables/jsgrid" class="nav-link">
-                  <i class="far fa-circle nav-icon"></i>
-                  <p>jsGrid</p>
-                </RouterLink>
-              </li>
-            </ul>
-          </li>
-          <li class="nav-header">EXAMPLES</li>
-          <li class="nav-item">
-            <RouterLink to="/calendar" class="nav-link">
-              <i class="nav-icon fas fa-calendar-alt"></i>
-              <p>
-                Calendar
-                <span class="badge badge-info right">2</span>
-              </p>
-            </RouterLink>
-          </li>
-          <li class="nav-item">
-            <RouterLink to="/gallery" class="nav-link">
-              <i class="nav-icon far fa-image"></i>
-              <p>
-                Gallery
-              </p>
-            </RouterLink>
-          </li>
-          <li class="nav-item">
-            <RouterLink to="/kanban" class="nav-link">
-              <i class="nav-icon fas fa-columns"></i>
-              <p>
-                Kanban Board
-              </p>
-            </RouterLink>
-          </li>
-          <li class="nav-item">
-            <a href="#" class="nav-link">
-              <i class="nav-icon far fa-envelope"></i>
-              <p>
-                Mailbox
-                <i class="fas fa-angle-left right"></i>
-              </p>
-            </a>
-            <ul class="nav nav-treeview">
-              <li class="nav-item">
-                <RouterLink to="/mailbox/inbox" class="nav-link">
-                  <i class="far fa-circle nav-icon"></i>
-                  <p>Inbox</p>
-                </RouterLink>
-              </li>
-              <li class="nav-item">
-                <RouterLink to="/mailbox/compose" class="nav-link">
-                  <i class="far fa-circle nav-icon"></i>
-                  <p>Compose</p>
-                </RouterLink>
-              </li>
-              <li class="nav-item">
-                <RouterLink to="/mailbox/read-mail" class="nav-link">
-                  <i class="far fa-circle nav-icon"></i>
-                  <p>Read</p>
-                </RouterLink>
-              </li>
-            </ul>
-          </li>
-          <li class="nav-item">
-            <a href="#" class="nav-link">
-              <i class="nav-icon fas fa-book"></i>
-              <p>
-                Pages
-                <i class="fas fa-angle-left right"></i>
-              </p>
-            </a>
-            <ul class="nav nav-treeview">
-              <li class="nav-item">
-               <RouterLink to="/examples/invoice" class="nav-link">
-                  <i class="far fa-circle nav-icon"></i>
-                  <p>Invoice</p>
-                </RouterLink>
-              </li>
-              <li class="nav-item">
-                <RouterLink to="/examples/profile" class="nav-link">
-                  <i class="far fa-circle nav-icon"></i>
-                  <p>Profile</p>
-                </RouterLink>
-              </li>
-              <li class="nav-item">
-                <RouterLink to="/examples/e-commerce" class="nav-link">
-                  <i class="far fa-circle nav-icon"></i>
-                  <p>E-commerce</p>
-                </RouterLink>
-              </li>
-              <li class="nav-item">
-                <RouterLink to="/examples/projects" class="nav-link">
-                  <i class="far fa-circle nav-icon"></i>
-                  <p>Projects</p>
-                </RouterLink>
-              </li>
-              <li class="nav-item">
-                <RouterLink to="/examples/project-add" class="nav-link">
-                  <i class="far fa-circle nav-icon"></i>
-                  <p>Project Add</p>
-                </RouterLink>
-              </li>
-              <li class="nav-item">
-                <RouterLink to="/examples/project-edit" class="nav-link">
-                  <i class="far fa-circle nav-icon"></i>
-                  <p>Project Edit</p>
-                </RouterLink>
-              </li>
-              <li class="nav-item">
-                <RouterLink to="/examples/project-detail" class="nav-link">
-                  <i class="far fa-circle nav-icon"></i>
-                  <p>Project Detail</p>
-                </RouterLink>
-              </li>
-              <li class="nav-item">
-                <RouterLink to="/examples/contacts" class="nav-link">
-                  <i class="far fa-circle nav-icon"></i>
-                  <p>Contacts</p>
-                </RouterLink>
-              </li>
-              <li class="nav-item">
-                <RouterLink to="/examples/faq" class="nav-link">
-                  <i class="far fa-circle nav-icon"></i>
-                  <p>FAQ</p>
-                </RouterLink>
-              </li>
-              <li class="nav-item">
-                <RouterLink to="/examples/contact-us" class="nav-link">
-                  <i class="far fa-circle nav-icon"></i>
-                  <p>Contact us</p>
-                </RouterLink>
-              </li>
-            </ul>
-          </li>
-          <li class="nav-item">
-            <a href="#" class="nav-link">
-              <i class="nav-icon far fa-plus-square"></i>
-              <p>
-                Extras
-                <i class="fas fa-angle-left right"></i>
-              </p>
-            </a>
-            <ul class="nav nav-treeview">
-              <li class="nav-item">
-                <a href="#" class="nav-link">
-                  <i class="far fa-circle nav-icon"></i>
-                  <p>
-                    Login & Register v1
-                    <i class="fas fa-angle-left right"></i>
-                  </p>
-                </a>
-                <ul class="nav nav-treeview">
-                  <li class="nav-item">
-                   <a href="/examples/login" class="nav-link" target="_blank" rel="noopener">
-                    <i class="far fa-circle nav-icon"></i>
-                    <p>Login v1</p>
-                   </a>
-                  </li>
-                  <li class="nav-item">
-                    <a href="/examples/register" class="nav-link" target="_blank" rel="noopener">
-                      <i class="far fa-circle nav-icon"></i>
-                      <p>Register v1</p>
-                    </a>
-                  </li>
-                  <li class="nav-item">
-                    <a href="/examples/forgot-password" class="nav-link" target="_blank" rel="noopener">
-                      <i class="far fa-circle nav-icon"></i>
-                      <p>Forgot Password v1</p>
-                    </a>
-                  </li>
-                  <li class="nav-item">
-                    <a href="/examples/recover-password" class="nav-link" target="_blank" rel="noopener">
-                      <i class="far fa-circle nav-icon"></i>
-                      <p>Recover Password v1</p>
-                    </a>
-                  </li>
-                </ul>
-              </li>
-              <li class="nav-item">
-                <a href="#" class="nav-link">
-                  <i class="far fa-circle nav-icon"></i>
-                  <p>
-                    Login & Register v2
-                    <i class="fas fa-angle-left right"></i>
-                  </p>
-                </a>
-                <ul class="nav nav-treeview">
-                  <li class="nav-item">
-                    <a href="/examples/login-v2" class="nav-link" target="_blank" rel="noopener">
-                      <i class="far fa-circle nav-icon"></i>
-                      <p>Login v2</p>
-                    </a>
-                  </li>
-                  <li class="nav-item">
-                    <a href="/examples/register-v2" class="nav-link" target="_blank" rel="noopener">
-                      <i class="far fa-circle nav-icon"></i>
-                      <p>Register v2</p>
-                    </a>
-                  </li>
-                  <li class="nav-item">
-                    <a href="/examples/forgot-password-v2" class="nav-link" target="_blank" rel="noopener">
-                      <i class="far fa-circle nav-icon"></i>
-                      <p>Forgot Password v2</p>
-                    </a>
-                  </li>
-                  <li class="nav-item">
-                    <a href="/examples/recover-password-v2" class="nav-link" target="_blank" rel="noopener">
-                      <i class="far fa-circle nav-icon"></i>
-                      <p>Recover Password v2</p>
-                    </a>
-                  </li>
-                </ul>
-              </li>
-              <li class="nav-item">
-                <a href="/examples/lockscreen" class="nav-link" target="_blank" rel="noopener">
-                  <i class="far fa-circle nav-icon"></i>
-                  <p>Lockscreen</p>
-                </a>
-              </li>
-              <li class="nav-item">
-                <RouterLink to="/examples/legacy-user-menu" class="nav-link" >
-                  <i class="far fa-circle nav-icon"></i>
-                  <p>Legacy User Menu</p>
-                </RouterLink>
-              </li>
-              <li class="nav-item">
-                <RouterLink to="/examples/language-menu" class="nav-link">
-                  <i class="far fa-circle nav-icon"></i>
-                  <p>Language Menu</p>
-                </RouterLink>
-              </li>
-              <li class="nav-item">
-                <RouterLink to="/examples/404" class="nav-link">
-                  <i class="far fa-circle nav-icon"></i>
-                  <p>Error 404</p>
-                </RouterLink>
-              </li>
-              <li class="nav-item">
-                <RouterLink to="/examples/500" class="nav-link">
-                  <i class="far fa-circle nav-icon"></i>
-                  <p>Error 500</p>
-                </RouterLink>
-              </li>
-              <li class="nav-item">
-                <RouterLink to="/examples/pace" class="nav-link">
-                  <i class="far fa-circle nav-icon"></i>
-                  <p>Pace</p>
-                </RouterLink>
-              </li>
-              <li class="nav-item">
-                <RouterLink to="/examples/blank" class="nav-link">
-                  <i class="far fa-circle nav-icon"></i>
-                  <p>Blank Page</p>
-                </RouterLink>
-              </li>
-              <li class="nav-item">
-                <RouterLink to="/examples/starter" class="nav-link">
-                  <i class="far fa-circle nav-icon"></i>
-                  <p>Starter Page</p>
-                </RouterLink>
-              </li>
-            </ul>
-          </li>
-          <li class="nav-item">
-            <a href="#" class="nav-link">
-              <i class="nav-icon fas fa-search"></i>
-              <p>
-                Search
-                <i class="fas fa-angle-left right"></i>
-              </p>
-            </a>
-            <ul class="nav nav-treeview">
-              <li class="nav-item">
-                <RouterLink to="/search/simple" class="nav-link">
-                  <i class="far fa-circle nav-icon"></i>
-                  <p>Simple Search</p>
-                </RouterLink>
-              </li>
-              <li class="nav-item">
-                <RouterLink to="/search/enhanced" class="nav-link">
-                  <i class="far fa-circle nav-icon"></i>
-                  <p>Enhanced</p>
-                </RouterLink>
-              </li>
-            </ul>
-          </li>
-          <li class="nav-header">MISCELLANEOUS</li>
-          <li class="nav-item">
-            <RouterLink to="/examples/iframe" class="nav-link">
-              <i class="nav-icon fas fa-ellipsis-h"></i>
-              <p>Tabbed IFrame Plugin</p>
-            </RouterLink>
-          </li>
-          <li class="nav-item">
-            <a href="https://adminlte.io/docs/3.1/" class="nav-link" target="_blank" rel="noopener">
-              <i class="nav-icon fas fa-file"></i>
-              <p>Documentation</p>
-            </a>
-          </li>
-          <li class="nav-header">MULTI LEVEL EXAMPLE</li>
-          <li class="nav-item">
-            <a href="#" class="nav-link">
-              <i class="fas fa-circle nav-icon"></i>
-              <p>Level 1</p>
-            </a>
-          </li>
-          <li class="nav-item">
-            <a href="#" class="nav-link">
-              <i class="nav-icon fas fa-circle"></i>
-              <p>
-                Level 1
-                <i class="right fas fa-angle-left"></i>
-              </p>
-            </a>
-            <ul class="nav nav-treeview">
-              <li class="nav-item">
-                <a href="#" class="nav-link">
-                  <i class="far fa-circle nav-icon"></i>
-                  <p>Level 2</p>
-                </a>
-              </li>
-              <li class="nav-item">
-                <a href="#" class="nav-link">
-                  <i class="far fa-circle nav-icon"></i>
-                  <p>
-                    Level 2
-                    <i class="right fas fa-angle-left"></i>
-                  </p>
-                </a>
-                <ul class="nav nav-treeview">
-                  <li class="nav-item">
-                    <a href="#" class="nav-link">
-                      <i class="far fa-dot-circle nav-icon"></i>
-                      <p>Level 3</p>
-                    </a>
-                  </li>
-                  <li class="nav-item">
-                    <a href="#" class="nav-link">
-                      <i class="far fa-dot-circle nav-icon"></i>
-                      <p>Level 3</p>
-                    </a>
-                  </li>
-                  <li class="nav-item">
-                    <a href="#" class="nav-link">
-                      <i class="far fa-dot-circle nav-icon"></i>
-                      <p>Level 3</p>
-                    </a>
-                  </li>
-                </ul>
-              </li>
-              <li class="nav-item">
-                <a href="#" class="nav-link">
-                  <i class="far fa-circle nav-icon"></i>
-                  <p>Level 2</p>
-                </a>
-              </li>
-            </ul>
-          </li>
-          <li class="nav-item">
-            <a href="#" class="nav-link">
-              <i class="fas fa-circle nav-icon"></i>
-              <p>Level 1</p>
-            </a>
-          </li>
-          <li class="nav-header">LABELS</li>
-          <li class="nav-item">
-            <a href="#" class="nav-link">
-              <i class="nav-icon far fa-circle text-danger"></i>
-              <p class="text">Important</p>
-            </a>
-          </li>
-          <li class="nav-item">
-            <a href="#" class="nav-link">
-              <i class="nav-icon far fa-circle text-warning"></i>
-              <p>Warning</p>
-            </a>
-          </li>
-          <li class="nav-item">
-            <a href="#" class="nav-link">
-              <i class="nav-icon far fa-circle text-info"></i>
-              <p>Informational</p>
-            </a>
-          </li> -->
         </ul>
       </nav>
-      <!-- /.sidebar-menu -->
     </div>
-    <!-- /.sidebar -->
   </aside>
-
 </template>
-
-<script setup>
-import { onMounted, computed, watch } from 'vue'
-import { useRouter } from 'vue-router'
-import { useFrontendConfig } from '@/composables/useConfig'
-
-const router = useRouter()
-const { config, previewLogo } = useFrontendConfig()
-const systemName = computed(() => config.value.systemName)
-// Gunakan logo sistem, fallback ke logoDataUrl, lalu default image
-const logoUrl = computed(() => config.value.logoUrl || config.value.logoDataUrl || '/img/ENGwhite.png')
-
-// ✅ Key unik untuk memaksa Vue me-reload img element saat logo berubah
-const logoKey = computed(() => {
-  return logoUrl.value + Date.now() // Force reload saat URL berubah
-})
-
-/**
- * ✅ Tutup sidebar otomatis setelah navigasi pada mobile
- * Mencegah sidebar tetap terbuka dan menutupi konten
- */
-const closeSidebarOnNavigation = () => {
-  // Dengarkan perubahan route
-  router.afterEach(() => {
-    // Cek apakah window width kurang dari 992px (mobile/tablet)
-    if (window.innerWidth < 992) {
-      // Simulasi klik pada pushmenu untuk menutup sidebar
-      const pushMenuBtn = document.querySelector('[data-widget="pushmenu"]')
-      if (pushMenuBtn) {
-        pushMenuBtn.click()
-      }
-    }
-  })
-}
-
-onMounted(() => {
-  closeSidebarOnNavigation()
-})
-</script>

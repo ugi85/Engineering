@@ -53,23 +53,29 @@ export function useLogAktivitas() {
   // ════════════════════════════════════════════════════════════════
   // ✅ HELPER: FORMAT TANGGAL (DIPERBAIKI - SUPPORT SEMUA FORMAT)
   // ════════════════════════════════════════════════════════════════
-  
-  // Konversi ke format input (YYYY-MM-DD)
+
+  // Konversi ke format input (YYYY-MM-DD) untuk input type="date"
   function formatDateForInput(dateString) {
     if (!dateString || dateString === '-' || dateString === 'Invalid date') return ''
-    
+
     // Format 1: dd/mm/yyyy atau d/m/yyyy
     if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(dateString)) {
-      const [day, month, year] = dateString.split('/')
-      return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+      const parts = dateString.split('/')
+      const day = String(parts[0]).padStart(2, '0')
+      const month = String(parts[1]).padStart(2, '0')
+      const year = parts[2]
+      return `${year}-${month}-${day}`
     }
-    
+
     // Format 2: YYYY-MM-DD (sudah benar, pastikan padding)
     if (/^\d{4}-\d{1,2}-\d{1,2}$/.test(dateString)) {
-      const [year, month, day] = dateString.split('-')
-      return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+      const parts = dateString.split('-')
+      const year = parts[0]
+      const month = String(parts[1]).padStart(2, '0')
+      const day = String(parts[2]).padStart(2, '0')
+      return `${year}-${month}-${day}`
     }
-    
+
     // Format 3: ISO String atau format lain
     try {
       const date = new Date(dateString)
@@ -82,20 +88,32 @@ export function useLogAktivitas() {
     } catch (e) {
       console.warn('Error formatting date for input:', dateString, e)
     }
-    
+
     return '' // Fallback ke string kosong
   }
 
   // Konversi ke format display (dd/mm/yyyy)
   function formatDateForDisplay(dateString) {
     if (!dateString || dateString === '-' || dateString === 'Invalid date') return '-'
-    
-    // Format YYYY-MM-DD
+
+    // Format YYYY-MM-DD (dari input type="date")
     if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
-      const [year, month, day] = dateString.split('-')
+      const parts = dateString.split('-')
+      const year = parts[0]
+      const month = parts[1]
+      const day = parts[2]
       return `${day}/${month}/${year}`
     }
-    
+
+    // Format dd/mm/yyyy (sudah benar)
+    if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(dateString)) {
+      const parts = dateString.split('/')
+      const day = String(parts[0]).padStart(2, '0')
+      const month = String(parts[1]).padStart(2, '0')
+      const year = parts[2]
+      return `${day}/${month}/${year}`
+    }
+
     // Format ISO string atau Date object
     try {
       const date = new Date(dateString)
@@ -108,7 +126,7 @@ export function useLogAktivitas() {
     } catch (e) {
       console.warn('Error formatting date for display:', dateString, e)
     }
-    
+
     return dateString || '-'
   }
 

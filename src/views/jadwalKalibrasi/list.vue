@@ -3,18 +3,26 @@ import { ref, onMounted, watch, computed } from 'vue'
 import { useJadwalKalibrasi } from '@/composables/useJadwalKalibrasi'
 import { useDaftarAlat } from '@/composables/useDaftarAlat'
 import { useFrontendConfig } from '@/composables/useConfig'
+import { usePermissions } from '@/composables/usePermissions'
 
 // ✅ Ambil semua fungsi CRUD
-const { 
-  refJadwal, 
-  loading, 
-  fetchList, 
-  saveJadwal, 
+const {
+  refJadwal,
+  loading,
+  fetchList,
+  saveJadwal,
   deleteJadwal,
-  isSaving 
+  isSaving
 } = useJadwalKalibrasi()
 
 const { config } = useFrontendConfig()
+const permission = usePermissions()
+
+// Computed untuk permission checks
+const canCreate = computed(() => permission.can('jadwalKalibrasi:create'))
+const canEdit = computed(() => permission.can('jadwalKalibrasi:edit'))
+const canDelete = computed(() => permission.can('jadwalKalibrasi:delete'))
+const isLoggedIn = computed(() => permission.isLoggedIn.value)
 
 // Ambil daftar alat untuk menampilkan opsi No.ID di modal
 const { tools: daftarAlat, loading: loadingAlat, fetchList: fetchDaftarAlat } = useDaftarAlat()
@@ -150,8 +158,8 @@ onMounted(() => {
           <!-- <small class="text-muted">No Reff: AGIS-WI-ENG-016-LD1_v5.0</small><br> -->
            <small class="text-muted">No Reff: {{ documentRefCalibration }}</small>
         </div>
-        <button class="btn btn-info" @click="openCreateModal">
-          Tambah Jadwal
+        <button v-if="canCreate" class="btn btn-info" @click="openCreateModal">
+          <i class="fas fa-plus mr-1"></i> Tambah Jadwal
         </button>
       </div>
     </section>
@@ -200,18 +208,21 @@ onMounted(() => {
                     <td>{{ row.criticality || '—' }}</td>
                     <!-- ✅ Tombol Aksi -->
                     <td class="text-center">
-                      <button 
-                        class="btn btn-warning btn-sm mr-1" 
+                      <button v-if="canEdit"
+                        class="btn btn-warning btn-sm mr-1"
                         @click="openEditModal(row)"
                       >
                         <i class="fas fa-edit"></i>
                       </button>
-                      <button 
-                        class="btn btn-danger btn-sm" 
+                      <button v-if="canDelete"
+                        class="btn btn-danger btn-sm"
                         @click="handleDelete(row.no)"
                       >
                         <i class="fas fa-trash"></i>
                       </button>
+                      <span v-if="!canEdit && !canDelete" class="text-muted">
+                          <i class="fas fa-lock mr-1"></i>
+                      </span>
                     </td>
                   </tr>
                 </tbody>

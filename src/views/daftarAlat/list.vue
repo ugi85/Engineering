@@ -2,9 +2,17 @@
 import { ref, onMounted, computed } from 'vue'
 import { useDaftarAlat } from '@/composables/useDaftarAlat'
 import { useFrontendConfig } from '@/composables/useConfig'
+import { usePermissions } from '@/composables/usePermissions'
 
 const { tools, loading, fetchList, saveTool, isSaving, deleteTool } = useDaftarAlat()
 const { config } = useFrontendConfig()
+const permission = usePermissions()
+
+// Computed untuk permission checks
+const canCreate = computed(() => permission.can('daftarAlat:create'))
+const canEdit = computed(() => permission.can('daftarAlat:edit'))
+const canDelete = computed(() => permission.can('daftarAlat:delete'))
+const isLoggedIn = computed(() => permission.isLoggedIn.value)
 
 // Template untuk field form
 const getEmptyTool = () => ({
@@ -123,8 +131,8 @@ onMounted(() => {
           <!-- <small class="text-muted">No Reff: AGIS-WI-ENG-001-LD1_v5.0</small><br> -->
            <small class="text-muted">No Reff: {{ documentRefEquipment }}</small>
         </div>
-        <button class="btn btn-info" @click="openCreateModal">
-          Tambah Alat
+        <button v-if="canCreate" class="btn btn-info" @click="openCreateModal">
+          <i class="fas fa-plus mr-1"></i> Tambah Alat
         </button>
       </div>
     </section>
@@ -198,12 +206,15 @@ onMounted(() => {
                       <span v-else-if="tool.status_calibration" class="badge badge-warning">{{ tool.status_calibration }}</span>
                     </td> -->
                     <td class="text-center">
-                      <button class="btn btn-warning btn-sm mr-1" @click="openEditModal(tool)">
+                      <button v-if="canEdit" class="btn btn-warning btn-sm mr-1" @click="openEditModal(tool)">
                         <i class="fas fa-edit"></i>
                       </button>
-                      <button class="btn btn-danger btn-sm" @click="handleDelete(tool.no)">
+                      <button v-if="canDelete" class="btn btn-danger btn-sm" @click="handleDelete(tool.no)">
                         <i class="fas fa-trash"></i>
                       </button>
+                      <span v-if="!canEdit && !canDelete" class="text-muted">
+                        <i class="fas fa-lock mr-1"></i>
+                      </span>
                     </td>
                   </tr>
                 </tbody>

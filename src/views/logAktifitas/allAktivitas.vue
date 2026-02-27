@@ -1,7 +1,16 @@
 <script setup>
-import { ref, onMounted, nextTick, watch } from 'vue'
+import { ref, onMounted, nextTick, watch, computed } from 'vue'
 import { useLogAktivitas } from '@/composables/useLogAktivitas'
 import { printService } from '@/services/printService'
+import { usePermissions } from '@/composables/usePermissions'
+
+const permission = usePermissions()
+
+// Computed untuk permission checks
+const canCreate = computed(() => permission.can('logAktivitas:create'))
+const canEdit = computed(() => permission.can('logAktivitas:edit'))
+const canDelete = computed(() => permission.can('logAktivitas:delete'))
+const isLoggedIn = computed(() => permission.isLoggedIn.value)
 
 // ✅ Ambil semua fungsi yang diperlukan dari composable
 // ❌ HAPUS: formatDateDisplay dari destructuring (karena akan duplicate)
@@ -257,21 +266,28 @@ onMounted(async () => {
                       </td>
                       <td>{{ log.keterangan || '-' }}</td>
                        <td class="text-center">
-                        <!-- ✅ TAMBAHKAN BUTTON EDIT -->
-                        <button 
-                          class="btn btn-warning btn-sm mr-1" 
+                        <!-- ✅ BUTTON EDIT & DELETE - HANYA UNTUK YANG LOGIN -->
+                        <button
+                          v-if="isLoggedIn && canEdit"
+                          class="btn btn-warning btn-sm mr-1"
                           @click="openEditDialog(log)"
                           title="Edit Log"
                         >
                           <i class="fas fa-edit"></i>
                         </button>
-                        <button 
-                          class="btn btn-danger btn-sm" 
+                        <button
+                          v-if="isLoggedIn && canDelete"
+                          class="btn btn-danger btn-sm"
                           @click="handleDelete(log.no, log.no_id, log.cal_id)"
                           title="Hapus Log"
                         >
                           <i class="fas fa-trash"></i>
                         </button>
+                        <!-- ✅ PESAN UNTUK TAMU -->
+                        <span v-if="!isLoggedIn" class="text-muted small">
+                          <i class="fas fa-lock mr-1"></i>
+                        </span>
+                        <span v-else-if="!canEdit && !canDelete" class="text-muted">-</span>
                       </td>
                     </tr>
                   </tbody>

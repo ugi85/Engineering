@@ -41,8 +41,8 @@ export function useUsers() {
         language: {
           search: '_INPUT_',
           searchPlaceholder: 'Cari user...',
-          lengthMenu: 'Tampilkan _MENU_ baris',
-          info: 'Menampilkan _START_ sampai _END_ dari _TOTAL_ entri',
+          // lengthMenu: 'Tampilkan _MENU_ baris',
+          // info: 'Menampilkan _START_ sampai _END_ dari _TOTAL_ entri',
           infoEmpty: 'Tidak ada entri',
           infoFiltered: '(difilter dari _MAX_ total entri)',
           zeroRecords: 'Tidak ada data yang ditemukan',

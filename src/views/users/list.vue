@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, nextTick } from 'vue'
 import { useUsers } from '@/composables/useUsers'
 import { usePermissions } from '@/composables/usePermissions'
 import { userStore } from '@/stores/userStore'
@@ -12,6 +12,117 @@ const canCreateUser = computed(() => can('user:create'))
 const canEditUser = computed(() => can('user:edit'))
 const canDeleteUser = computed(() => can('user:delete'))
 const canViewUser = computed(() => can('user:view'))
+
+// ✅ State untuk bulk delete
+const selectedUsers = ref([])
+const bulkDeleteMode = ref(false)
+
+// ✅ Toggle bulk delete mode
+const toggleBulkDeleteMode = () => {
+  bulkDeleteMode.value = !bulkDeleteMode.value
+  if (!bulkDeleteMode.value) {
+    selectedUsers.value = []
+  }
+}
+
+// ✅ Check if user is selected
+const isUserSelected = (id) => {
+  return selectedUsers.value.includes(id)
+}
+
+// ✅ Toggle single user selection
+const toggleUserSelection = (id) => {
+  const index = selectedUsers.value.indexOf(id)
+  if (index === -1) {
+    selectedUsers.value.push(id)
+  } else {
+    selectedUsers.value.splice(index, 1)
+  }
+}
+
+// ✅ Toggle select all
+const toggleSelectAll = () => {
+  if (selectedUsers.value.length === filteredUsers.value.length) {
+    selectedUsers.value = []
+  } else {
+    selectedUsers.value = filteredUsers.value.map(user => user.id)
+  }
+}
+
+// ✅ Check if all selected
+const isAllSelected = computed(() => {
+  return filteredUsers.value.length > 0 && selectedUsers.value.length === filteredUsers.value.length
+})
+
+// ✅ Bulk delete handler
+const handleBulkDelete = async () => {
+  if (selectedUsers.value.length === 0) {
+    Swal.fire('Peringatan!', 'Pilih minimal 1 user untuk dihapus', 'warning')
+    return
+  }
+
+  if (!canDeleteUser.value) {
+    Swal.fire('Error!', 'Anda tidak memiliki izin untuk hapus user', 'error')
+    return
+  }
+
+  try {
+    const result = await Swal.fire({
+      title: 'Hapus User?',
+      html: `Yakin hapus <strong>${selectedUsers.value.length}</strong> user?<br><small class="text-muted">Data tidak bisa dikembalikan!</small>`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#d33',
+      cancelButtonColor: '#3085d6',
+      confirmButtonText: 'Ya, Hapus Semua!',
+      cancelButtonText: 'Batal'
+    })
+
+    if (result.isConfirmed) {
+      const deletedCount = selectedUsers.value.length
+      
+      // Show loading
+      Swal.fire({
+        title: 'Menghapus...',
+        text: 'Sedang menghapus data, mohon tunggu',
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+        didOpen: () => {
+          Swal.showLoading()
+        }
+      })
+
+      // Delete sequentially
+      for (const id of selectedUsers.value) {
+        const user = filteredUsers.value.find(u => u.id === id)
+        if (user) {
+          await deleteUser(user.id, user.nama)
+        }
+      }
+
+      // Reset
+      selectedUsers.value = []
+      bulkDeleteMode.value = false
+
+      // Refresh
+      await nextTick()
+      await new Promise(resolve => setTimeout(resolve, 300))
+      await fetchUsers()
+
+      // Success
+      Swal.fire({
+        icon: 'success',
+        title: 'Berhasil!',
+        text: `${deletedCount} user berhasil dihapus.`,
+        timer: 2000,
+        showConfirmButton: false
+      })
+    }
+  } catch (error) {
+    console.error('Error saat bulk delete:', error)
+    Swal.fire('Error!', error.message || 'Gagal menghapus user', 'error')
+  }
+}
 
 // Computed untuk cek apakah user adalah superadmin
 const isSuperAdmin = computed(() => {
@@ -229,10 +340,41 @@ onMounted(() => {
             </div>
 
             <!-- Data Table State -->
-            <div v-else>
+            <div v-else :class="{ 'bulk-delete-active': bulkDeleteMode }">
+              <!-- Bulk delete buttons - sejajar dengan DataTables controls -->
+              <div class="bulk-delete-wrapper no-print" v-if="isLoggedIn && canDeleteUser">
+                <!-- Tombol Hapus Banyak - di tengah -->
+                <button
+                  class="btn btn-outline-danger btn-sm bulk-delete-toggle-btn"
+                  :class="{ 'active': bulkDeleteMode }"
+                  @click="toggleBulkDeleteMode"
+                  title="Mode hapus banyak"
+                >
+                  <i class="fas fa-trash-alt mr-1"></i>
+                  {{ bulkDeleteMode ? 'Cancel' : 'Delete' }}
+                </button>
+                <!-- Tombol Hapus X User - di kanan dekat search -->
+                <button
+                  v-if="bulkDeleteMode && selectedUsers.length > 0"
+                  class="btn btn-danger btn-sm bulk-delete-action-btn"
+                  @click="handleBulkDelete"
+                  title="Hapus user yang dipilih"
+                >
+                  <i class="fas fa-trash mr-1"></i>Delete {{ selectedUsers.length }} User
+                </button>
+              </div>
               <table class="table table-bordered table-hover users-table">
                 <thead>
                   <tr>
+                    <th class="text-center checkbox-column" style="width: 40px;" :style="bulkDeleteMode ? '' : 'width:0!important;min-width:0!important;max-width:0!important;padding:0!important;'">
+                      <input
+                        type="checkbox"
+                        :checked="isAllSelected"
+                        @click.stop="toggleSelectAll"
+                        class="cursor-pointer"
+                        :disabled="!bulkDeleteMode"
+                      />
+                    </th>
                     <th class="text-center" style="width: 50px;">No</th>
                     <th>Nama</th>
                     <th>Inisial</th>
@@ -245,6 +387,15 @@ onMounted(() => {
                 </thead>
                 <tbody>
                   <tr v-for="(user, index) in filteredUsers" :key="user.id">
+                    <td class="text-center checkbox-column" :style="bulkDeleteMode ? '' : 'width:0!important;min-width:0!important;max-width:0!important;padding:0!important;'">
+                      <input
+                        type="checkbox"
+                        :checked="isUserSelected(user.id)"
+                        @click.stop="toggleUserSelection(user.id)"
+                        class="cursor-pointer"
+                        :disabled="!bulkDeleteMode"
+                      />
+                    </td>
                     <td class="text-center">{{ index + 1 }}</td>
                     <td>{{ user.nama }}</td>
                     <td>{{ user.inisial }}</td>
@@ -422,6 +573,68 @@ onMounted(() => {
 </template>
 
 <style scoped>
+/* ✅ Bulk delete controls styling */
+.bulk-delete-wrapper {
+  position: relative;
+  height: 0;
+  z-index: 10;
+}
+
+/* Tombol Hapus Banyak - di tengah */
+.bulk-delete-toggle-btn {
+  position: absolute;
+  left: 20%;
+  transform: translateX(-50%);
+  white-space: nowrap;
+}
+
+/* Tombol Hapus X User - di kanan dekat search box */
+.bulk-delete-action-btn {
+  position: absolute;
+  right: 220px;
+  top: 0;
+  white-space: nowrap;
+}
+
+/* ✅ Checkbox column styling */
+.checkbox-column {
+  width: 0;
+  min-width: 0;
+  max-width: 0;
+  padding: 0 !important;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+/* Tampilkan kolom saat bulk delete mode aktif */
+.bulk-delete-active .checkbox-column {
+  width: 40px;
+  min-width: 40px;
+  max-width: 40px;
+  padding: 0.5rem !important;
+}
+
+.checkbox-column input[type="checkbox"] {
+  visibility: hidden;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  cursor: pointer;
+  position: relative;
+  z-index: 1;
+  pointer-events: none !important;
+}
+
+/* Tampilkan checkbox saat bulk delete mode aktif */
+.bulk-delete-active .checkbox-column input[type="checkbox"] {
+  visibility: visible !important;
+  opacity: 1 !important;
+  pointer-events: auto !important;
+}
+
+.cursor-pointer {
+  cursor: pointer;
+}
+
 /* Header styling */
 .users-table thead th {
   vertical-align: middle;

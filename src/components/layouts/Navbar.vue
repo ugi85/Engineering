@@ -2,9 +2,11 @@
 import { ref, computed } from 'vue'
 import { usePermissions } from '@/composables/usePermissions'
 import LoginModal from '@/components/LoginModal.vue'
+import ChangePasswordModal from '@/components/ChangePasswordModal.vue'
 
 const permission = usePermissions()
 const showLoginModal = ref(false)
+const showChangePasswordModal = ref(false)
 
 // Computed untuk login status - akses .value karena permission.isLoggedIn sudah computed
 const isLoggedIn = computed(() => permission.isLoggedIn.value)
@@ -16,6 +18,10 @@ const handleLoginSuccess = (userData) => {
 
 const handleLogout = () => {
   permission.logout()
+}
+
+const openChangePassword = () => {
+  showChangePasswordModal.value = true
 }
 </script>
 
@@ -73,6 +79,11 @@ const handleLogout = () => {
           <span class="ml-1">{{ user?.nama || 'User' }}</span>
         </a>
         <div class="dropdown-menu dropdown-menu-right">
+          <a href="#" class="dropdown-item" @click.prevent="openChangePassword">
+            <i class="fas fa-key mr-2"></i>
+            Ubah Password
+          </a>
+          <div class="dropdown-divider"></div>
           <a href="#" class="dropdown-item" @click.prevent="handleLogout">
             <i class="fas fa-sign-out-alt mr-2"></i>
             Logout
@@ -93,6 +104,11 @@ const handleLogout = () => {
   <LoginModal
     v-model="showLoginModal"
     @login-success="handleLoginSuccess"
+  />
+
+  <!-- Change Password Modal -->
+  <ChangePasswordModal
+    v-model="showChangePasswordModal"
   />
 </template>
 

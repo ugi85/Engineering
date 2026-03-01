@@ -30,17 +30,12 @@ const handleLogin = async () => {
   try {
     const result = await login(email.value, password.value)
 
-    if (result.success) {
-      const user = {
-        id: 'USR001',
-        nama: email.value.split('@')[0],
-        email: email.value,
-        role: 'admin'
-      }
+    console.log('[LoginModal] Login result:', result)
 
+    if (result.success && result.user) {
       // Set user ke global store (akan load permissions otomatis)
-      permission.setUser(user)
-      
+      permission.setUser(result.user)
+
       // Force refresh permissions dari storage
       const freshPermissions = userStore.state.permissions
       console.log('[LoginModal] User logged in with permissions:', freshPermissions)
@@ -57,20 +52,35 @@ const handleLogin = async () => {
         showConfirmButton: false
       })
 
-      emit('login-success', user)
+      emit('login-success', result.user)
 
       // Reset form
       email.value = ''
       password.value = ''
       error.value = ''
     } else {
+      // Login failed
       error.value = result.message || 'Email atau password salah'
-      Swal.fire('Error!', error.value, 'error')
+      Swal.fire({
+        icon: 'error',
+        title: 'Login Gagal!',
+        text: error.value,
+        timer: 2000,
+        showConfirmButton: false,
+        willClose: () => {
+          error.value = ''
+        }
+      })
     }
   } catch (err) {
     console.error('Login error:', err)
     error.value = 'Terjadi kesalahan saat login'
-    Swal.fire('Error!', error.value, 'error')
+    Swal.fire({
+      icon: 'error',
+      title: 'Login Gagal!',
+      text: 'Email atau password salah',
+      confirmButtonText: 'OK'
+    })
   } finally {
     loading.value = false
   }
@@ -178,12 +188,9 @@ onUnmounted(() => {
             </div>
           </form>
         </div>
-        <div class="modal-footer justify-content-between">
+        <div class="modal-footer justify-content-center">
           <small>
-            <a href="#">Lupa password?</a>
-          </small>
-          <small>
-            <a href="/examples/register">Buat akun baru</a>
+            <a href="#">Jika Lupa password, Silahkan hubungi admin !</a>
           </small>
         </div>
       </div>
@@ -191,8 +198,8 @@ onUnmounted(() => {
   </div>
   
   <!-- Backdrop -->
-  <div 
-    v-if="modelValue" 
+  <div
+    v-if="modelValue"
     class="modal-backdrop fade show"
     @click="emit('update:modelValue', false)"
   ></div>

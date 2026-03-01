@@ -193,6 +193,47 @@ export function useUsers() {
     }
   }
 
+  // === CHANGE PASSWORD: Ubah password user yang sedang login ===
+  const changePassword = async (oldPassword, newPassword) => {
+    isSaving.value = true
+    try {
+      // Dapatkan user yang sedang login dari userStore
+      const { userStore } = await import('@/stores/userStore')
+      const currentUser = userStore.state.user
+      
+      if (!currentUser || !currentUser.id) {
+        throw new Error('User belum login')
+      }
+      
+      // Validasi old password dengan login dulu
+      const loginResult = await login(currentUser.email, oldPassword)
+      if (!loginResult.success) {
+        throw new Error('Password saat ini salah')
+      }
+      
+      // Update password user
+      const updatePayload = {
+        id: currentUser.id,
+        nama: currentUser.nama,
+        inisial: currentUser.inisial || '',
+        email: currentUser.email,
+        role: currentUser.role,
+        password: newPassword // Hanya update password
+      }
+      
+      const result = await userApi.updateUser(updatePayload)
+      
+      Swal.fire('Berhasil!', 'Password berhasil diubah', 'success')
+      return result
+    } catch (error) {
+      console.error('Gagal mengubah password:', error)
+      Swal.fire('Error!', error.message || 'Gagal mengubah password', 'error')
+      throw error
+    } finally {
+      isSaving.value = false
+    }
+  }
+
   return {
     // State
     users,
@@ -205,6 +246,7 @@ export function useUsers() {
     createUser,
     updateUser,
     deleteUser,
-    login
+    login,
+    changePassword
   }
 }

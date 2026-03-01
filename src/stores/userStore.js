@@ -4,7 +4,9 @@ import permissionService from '@/services/permissionService'
 import idleTimerService from '@/services/idleTimerService'
 
 const USER_STORAGE_KEY = 'current_user'
+const SESSION_STORAGE_KEY = 'session_timestamp'
 const PERMISSIONS_CHANGED_EVENT = 'permissions-changed'
+const SESSION_TIMEOUT = 8 * 60 * 60 * 1000 // 8 jam dalam milliseconds
 
 // Singleton store dengan reactive state
 const state = reactive({
@@ -34,6 +36,10 @@ const setUser = (user) => {
 
   state.user = user
   localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(user))
+  
+  // Simpan timestamp session saat login
+  const sessionTimestamp = Date.now()
+  localStorage.setItem(SESSION_STORAGE_KEY, sessionTimestamp.toString())
 
   // Load permissions untuk user ini
   if (user && user.id) {
@@ -58,6 +64,46 @@ const getUser = () => {
 }
 
 /**
+ * Check apakah session sudah expired
+ */
+const isSessionExpired = () => {
+  const sessionTimestamp = localStorage.getItem(SESSION_STORAGE_KEY)
+  
+  if (!sessionTimestamp) {
+    console.log('[userStore] isSessionExpired - No session timestamp, consider expired')
+    return true
+  }
+  
+  const now = Date.now()
+  const elapsed = now - parseInt(sessionTimestamp)
+  const expired = elapsed > SESSION_TIMEOUT
+  
+  console.log('[userStore] isSessionExpired - Elapsed:', Math.floor(elapsed / 60000), 'min', '| Timeout:', Math.floor(SESSION_TIMEOUT / 60000), 'min', '| Expired:', expired)
+  
+  return expired
+}
+
+/**
+ * Clear session data (logout tanpa redirect)
+ */
+const clearSessionData = () => {
+  console.log('[userStore] clearSessionData - Clearing session data')
+  
+  // Stop idle timer
+  idleTimerService.stopIdleTimer()
+  
+  // Clear state
+  state.user = null
+  state.permissions = []
+  
+  // Clear localStorage
+  localStorage.removeItem(USER_STORAGE_KEY)
+  localStorage.removeItem(SESSION_STORAGE_KEY)
+  
+  console.log('[userStore] clearSessionData - Done')
+}
+
+/**
  * Load user dari localStorage saat aplikasi start
  */
 const loadUser = () => {
@@ -66,6 +112,24 @@ const loadUser = () => {
 
   if (stored) {
     try {
+      // Check session expiry
+      if (isSessionExpired()) {
+        console.log('[userStore] loadUser - Session expired, clearing user')
+        clearSessionData()
+        
+        // Show notification
+        if (typeof Swal !== 'undefined') {
+          Swal.fire({
+            icon: 'info',
+            title: 'Session Expired',
+            text: 'Sesi login Anda telah berakhir. Silakan login kembali.',
+            timer: 2000,
+            showConfirmButton: false
+          })
+        }
+        return
+      }
+      
       state.user = JSON.parse(stored)
       // Load permissions untuk user ini
       if (state.user && state.user.id) {
@@ -76,7 +140,7 @@ const loadUser = () => {
       console.log('[userStore] loadUser - Final state:', { user: state.user, permissions: state.permissions })
     } catch (e) {
       console.error('[userStore] loadUser - Error:', e)
-      localStorage.removeItem(USER_STORAGE_KEY)
+      clearSessionData()
     }
   } else {
     console.log('[userStore] loadUser - No stored user')
@@ -108,13 +172,7 @@ const refreshPermissions = () => {
  */
 const clearUser = () => {
   console.log('[userStore] clearUser - Clearing user')
-
-  // Stop idle timer saat logout
-  idleTimerService.stopIdleTimer()
-
-  state.user = null
-  state.permissions = []
-  localStorage.removeItem(USER_STORAGE_KEY)
+  clearSessionData()
   console.log('[userStore] clearUser - Done')
 }
 
@@ -186,5 +244,7 @@ export const userStore = {
   clearUser,
   logout,
   updateUserPermissions,
-  refreshPermissions
+  refreshPermissions,
+  isSessionExpired,
+  clearSessionData
 }

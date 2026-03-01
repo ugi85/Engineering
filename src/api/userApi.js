@@ -207,29 +207,98 @@ export const userApi = {
     const url = settings.api.users
 
     try {
-      const payload = {
-        action: 'login',
-        email: email,
-        password: password
-      }
+      // Gunakan URLSearchParams untuk GAS compatibility
+      const body = new URLSearchParams()
+      body.append('action', 'login')
+      body.append('email', email)
+      body.append('password', password)
+
+      console.log('[User API] Login attempt:', { email, password: '***' })
 
       const response = await fetch(url, {
         method: 'POST',
         headers: {
-          'Content-Type': 'text/plain;charset=UTF-8'
+          'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8'
         },
-        mode: 'no-cors',
-        body: JSON.stringify(payload)
+        body: body
       })
 
-      // With no-cors, we can't read the response
+      console.log('[User API] Login response status:', response.status)
+
+      // Try to read response
+      const result = await response.json()
+      console.log('[User API] Login result:', result)
+
+      if (!result.success) {
+        return {
+          success: false,
+          message: result.message || 'Email atau password salah'
+        }
+      }
+
       return {
         success: true,
-        message: 'Login berhasil'
+        message: 'Login berhasil',
+        user: result.user || null
       }
     } catch (error) {
       console.error('[User API] Error login:', error)
-      throw error
+      return {
+        success: false,
+        message: 'Email atau password salah'
+      }
+    }
+  },
+
+  /**
+   * POST: Change password
+   * @param {string} oldPassword - Current password
+   * @param {string} newPassword - New password
+   */
+  async changePassword(oldPassword, newPassword) {
+    const settings = useSettingsStore()
+    const url = settings.api.users
+
+    try {
+      // Gunakan URLSearchParams untuk GAS compatibility (sama seperti login)
+      const body = new URLSearchParams()
+      body.append('action', 'changePassword')
+      body.append('oldPassword', oldPassword)
+      body.append('newPassword', newPassword)
+
+      console.log('[User API] Changing password...', { oldPassword: '***', newPassword: '***' })
+
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8'
+        },
+        body: body
+      })
+
+      console.log('[User API] Change password response status:', response.status)
+
+      // Read response dari backend
+      const result = await response.json()
+      console.log('[User API] Change password result:', result)
+
+      if (!result || !result.success) {
+        return {
+          success: false,
+          message: result?.message || 'Gagal mengubah password. Pastikan backend mendukung changePassword.'
+        }
+      }
+
+      return {
+        success: true,
+        message: 'Password berhasil diubah'
+      }
+    } catch (error) {
+      console.error('[User API] Error changePassword:', error)
+      return {
+        success: false,
+        message: 'Gagal mengubah password. Error: ' + error.message
+      }
     }
   }
 }

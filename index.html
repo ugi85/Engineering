@@ -13,10 +13,12 @@
           const config = localStorage.getItem('qms_frontend_config_v2')
           if (config) {
             const parsed = JSON.parse(config)
-            if (parsed.faviconDataUrl) {
-              const link = document.querySelector("link[rel~='icon']")
-              if (link) {
+            const link = document.querySelector("link[rel~='icon']")
+            if (link) {
+              if (parsed.faviconDataUrl) {
                 link.href = parsed.faviconDataUrl
+              } else if (parsed.faviconUrl) {
+                link.href = parsed.faviconUrl
               }
             }
           }
@@ -117,11 +119,11 @@
 <script src="/plugins/bootstrap/js/bootstrap.bundle.min.js"></script>
 <!-- ChartJS -->
 <script src="/plugins/chart.js/Chart.min.js"></script>
-<!-- Sparkline -->
-<script src="/plugins/sparklines/sparkline.js"></script>
-<!-- JQVMap -->
-<script src="/plugins/jqvmap/jquery.vmap.min.js"></script>
-<script src="/plugins/jqvmap/maps/jquery.vmap.usa.js"></script>
+<!-- Sparkline (disabled karena menyebabkan error) -->
+<!-- <script src="/plugins/sparklines/sparkline.js"></script> -->
+<!-- JQVMap (disabled karena menyebabkan error) -->
+<!-- <script src="/plugins/jqvmap/jquery.vmap.min.js"></script> -->
+<!-- <script src="/plugins/jqvmap/maps/jquery.vmap.usa.js"></script> -->
 <!-- jQuery Knob Chart -->
 <script src="/plugins/jquery-knob/jquery.knob.min.js"></script>
 <!-- daterangepicker -->
@@ -138,8 +140,8 @@
 <!-- AdminLTE for demo purposes -->
 <!-- <script src="/js/demo.js"></script> -->
 <!-- AdminLTE dashboard demo (This is only for demo purposes) -->
-<script src="/js/pages/dashboard.js"></script>
-<script src="/js/pages/dashboard3.js"></script>
+<!-- <script src="/js/pages/dashboard.js"></script> -->
+<!-- <script src="/js/pages/dashboard3.js"></script> -->
 <!-- FLOT CHARTS -->
 <script src="/plugins/flot/jquery.flot.js"></script>
 <!-- FLOT RESIZE PLUGIN - allows the chart to redraw when the window is resized -->

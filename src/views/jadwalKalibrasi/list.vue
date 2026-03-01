@@ -1,20 +1,131 @@
 <script setup>
-import { ref, onMounted, watch, computed } from 'vue'
+import { ref, onMounted, watch, computed, nextTick } from 'vue'
 import { useJadwalKalibrasi } from '@/composables/useJadwalKalibrasi'
 import { useDaftarAlat } from '@/composables/useDaftarAlat'
 import { useFrontendConfig } from '@/composables/useConfig'
+import { usePermissions } from '@/composables/usePermissions'
 
 // ✅ Ambil semua fungsi CRUD
-const { 
-  refJadwal, 
-  loading, 
-  fetchList, 
-  saveJadwal, 
+const {
+  refJadwal,
+  loading,
+  fetchList,
+  saveJadwal,
   deleteJadwal,
-  isSaving 
+  isSaving
 } = useJadwalKalibrasi()
 
 const { config } = useFrontendConfig()
+const permission = usePermissions()
+
+// Computed untuk permission checks
+const canCreate = computed(() => permission.can('jadwalKalibrasi:create'))
+const canEdit = computed(() => permission.can('jadwalKalibrasi:edit'))
+const canDelete = computed(() => permission.can('jadwalKalibrasi:delete'))
+const isLoggedIn = computed(() => permission.isLoggedIn.value)
+
+// ✅ State untuk bulk delete
+const selectedJadwal = ref([])
+const bulkDeleteMode = ref(false)
+
+// ✅ Toggle bulk delete mode
+const toggleBulkDeleteMode = () => {
+  bulkDeleteMode.value = !bulkDeleteMode.value
+  if (!bulkDeleteMode.value) {
+    selectedJadwal.value = []
+  }
+}
+
+// ✅ Check if jadwal is selected
+const isJadwalSelected = (no) => {
+  return selectedJadwal.value.includes(no)
+}
+
+// ✅ Toggle single jadwal selection
+const toggleJadwalSelection = (no) => {
+  const index = selectedJadwal.value.indexOf(no)
+  if (index === -1) {
+    selectedJadwal.value.push(no)
+  } else {
+    selectedJadwal.value.splice(index, 1)
+  }
+}
+
+// ✅ Toggle select all
+const toggleSelectAll = () => {
+  if (selectedJadwal.value.length === refJadwal.value.length) {
+    selectedJadwal.value = []
+  } else {
+    selectedJadwal.value = refJadwal.value.map(jadwal => jadwal.no)
+  }
+}
+
+// ✅ Check if all selected
+const isAllSelected = computed(() => {
+  return refJadwal.value.length > 0 && selectedJadwal.value.length === refJadwal.value.length
+})
+
+// ✅ Bulk delete handler
+const handleBulkDelete = async () => {
+  if (selectedJadwal.value.length === 0) {
+    Swal.fire('Peringatan!', 'Pilih minimal 1 jadwal untuk dihapus', 'warning')
+    return
+  }
+
+  try {
+    const result = await Swal.fire({
+      title: 'Hapus Jadwal Kalibrasi?',
+      html: `Yakin hapus <strong>${selectedJadwal.value.length}</strong> jadwal?<br><small class="text-muted">Data tidak bisa dikembalikan!</small>`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#d33',
+      cancelButtonColor: '#3085d6',
+      confirmButtonText: 'Ya, Hapus Semua!',
+      cancelButtonText: 'Batal'
+    })
+
+    if (result.isConfirmed) {
+      const deletedCount = selectedJadwal.value.length
+      
+      // Show loading
+      Swal.fire({
+        title: 'Menghapus...',
+        text: 'Sedang menghapus data, mohon tunggu',
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+        didOpen: () => {
+          Swal.showLoading()
+        }
+      })
+
+      // Delete sequentially
+      for (const no of selectedJadwal.value) {
+        await deleteJadwal(no)
+      }
+
+      // Reset
+      selectedJadwal.value = []
+      bulkDeleteMode.value = false
+
+      // Refresh
+      await nextTick()
+      await new Promise(resolve => setTimeout(resolve, 300))
+      await fetchList()
+
+      // Success
+      Swal.fire({
+        icon: 'success',
+        title: 'Berhasil!',
+        text: `${deletedCount} jadwal berhasil dihapus.`,
+        timer: 2000,
+        showConfirmButton: false
+      })
+    }
+  } catch (error) {
+    console.error('Error saat bulk delete:', error)
+    Swal.fire('Error!', error.message || 'Gagal menghapus jadwal', 'error')
+  }
+}
 
 // Ambil daftar alat untuk menampilkan opsi No.ID di modal
 const { tools: daftarAlat, loading: loadingAlat, fetchList: fetchDaftarAlat } = useDaftarAlat()
@@ -150,8 +261,8 @@ onMounted(() => {
           <!-- <small class="text-muted">No Reff: AGIS-WI-ENG-016-LD1_v5.0</small><br> -->
            <small class="text-muted">No Reff: {{ documentRefCalibration }}</small>
         </div>
-        <button class="btn btn-info" @click="openCreateModal">
-          Tambah Jadwal
+        <button v-if="canCreate" class="btn btn-info" @click="openCreateModal">
+          <i class="fas fa-plus mr-1"></i> Tambah Jadwal
         </button>
       </div>
     </section>
@@ -165,11 +276,42 @@ onMounted(() => {
               <p class="mt-2">Memuat data...</p>
             </div>
 
-            <div v-else>
+            <div v-else :class="{ 'bulk-delete-active': bulkDeleteMode }">
+              <!-- Bulk delete buttons - sejajar dengan DataTables controls -->
+              <div class="bulk-delete-wrapper no-print" v-if="isLoggedIn && canDelete">
+                <!-- Tombol Hapus Banyak - di tengah -->
+                <button
+                  class="btn btn-outline-danger btn-sm bulk-delete-toggle-btn"
+                  :class="{ 'active': bulkDeleteMode }"
+                  @click="toggleBulkDeleteMode"
+                  title="Mode hapus banyak"
+                >
+                  <i class="fas fa-trash-alt mr-1"></i>
+                  {{ bulkDeleteMode ? 'Cancel' : 'Delete' }}
+                </button>
+                <!-- Tombol Hapus X Jadwal - di kanan dekat search -->
+                <button
+                  v-if="bulkDeleteMode && selectedJadwal.length > 0"
+                  class="btn btn-danger btn-sm bulk-delete-action-btn"
+                  @click="handleBulkDelete"
+                  title="Hapus jadwal yang dipilih"
+                >
+                  <i class="fas fa-trash mr-1"></i>Delete {{ selectedJadwal.length }} Jadwal
+                </button>
+              </div>
               <!-- ✅ Ubah class tabel -->
               <table class="table table-bordered table-hover jadwal-kalibrasi-table">
                 <thead>
                   <tr>
+                    <th class="align-middle checkbox-column" :style="bulkDeleteMode ? '' : 'width:0!important;min-width:0!important;max-width:0!important;padding:0!important;'">
+                      <input
+                        type="checkbox"
+                        :checked="isAllSelected"
+                        @click.stop="toggleSelectAll"
+                        class="cursor-pointer"
+                        :disabled="!bulkDeleteMode"
+                      />
+                    </th>
                     <th>No</th>
                     <th>No.ID</th>
                     <th>Description</th>
@@ -187,6 +329,15 @@ onMounted(() => {
                 </thead>
                 <tbody>
                     <tr v-for="row in refJadwal" :key="`jadwal-${row.no}`">
+                    <td class="text-center checkbox-column" :style="bulkDeleteMode ? '' : 'width:0!important;min-width:0!important;max-width:0!important;padding:0!important;'">
+                      <input
+                        type="checkbox"
+                        :checked="isJadwalSelected(row.no)"
+                        @click.stop="toggleJadwalSelection(row.no)"
+                        class="cursor-pointer"
+                        :disabled="!bulkDeleteMode"
+                      />
+                    </td>
                     <td>{{ row.no }}</td>
                     <td>{{ row.no_id || '—' }}</td>
                     <td>{{ row.description || '—' }}</td>
@@ -200,18 +351,21 @@ onMounted(() => {
                     <td>{{ row.criticality || '—' }}</td>
                     <!-- ✅ Tombol Aksi -->
                     <td class="text-center">
-                      <button 
-                        class="btn btn-warning btn-sm mr-1" 
+                      <button v-if="canEdit"
+                        class="btn btn-warning btn-sm mr-1"
                         @click="openEditModal(row)"
                       >
                         <i class="fas fa-edit"></i>
                       </button>
-                      <button 
-                        class="btn btn-danger btn-sm" 
+                      <button v-if="canDelete"
+                        class="btn btn-danger btn-sm"
                         @click="handleDelete(row.no)"
                       >
                         <i class="fas fa-trash"></i>
                       </button>
+                      <span v-if="!canEdit && !canDelete" class="text-muted">
+                          <i class="fas fa-lock mr-1"></i>
+                      </span>
                     </td>
                   </tr>
                 </tbody>
@@ -367,6 +521,68 @@ onMounted(() => {
 </template>
 
 <style scoped>
+/* ✅ Bulk delete controls styling */
+.bulk-delete-wrapper {
+  position: relative;
+  height: 0;
+  z-index: 10;
+}
+
+/* Tombol Hapus Banyak - di tengah */
+.bulk-delete-toggle-btn {
+  position: absolute;
+  left: 20%;
+  transform: translateX(-50%);
+  white-space: nowrap;
+}
+
+/* Tombol Hapus X Jadwal - di kanan dekat search box */
+.bulk-delete-action-btn {
+  position: absolute;
+  right: 220px;
+  top: 0;
+  white-space: nowrap;
+}
+
+/* ✅ Checkbox column styling */
+.checkbox-column {
+  width: 0;
+  min-width: 0;
+  max-width: 0;
+  padding: 0 !important;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+/* Tampilkan kolom saat bulk delete mode aktif */
+.bulk-delete-active .checkbox-column {
+  width: 40px;
+  min-width: 40px;
+  max-width: 40px;
+  padding: 0.5rem !important;
+}
+
+.checkbox-column input[type="checkbox"] {
+  visibility: hidden !important;
+  opacity: 0 !important;
+  transition: opacity 0.2s ease;
+  cursor: pointer;
+  position: relative;
+  z-index: 1;
+  pointer-events: none !important;
+}
+
+/* Tampilkan checkbox saat bulk delete mode aktif */
+.bulk-delete-active .checkbox-column input[type="checkbox"] {
+  visibility: visible !important;
+  opacity: 1 !important;
+  pointer-events: auto !important;
+}
+
+.cursor-pointer {
+  cursor: pointer;
+}
+
 /* Ubah class sesuai nama tabel baru */
 .jadwal-kalibrasi-table thead th {
   vertical-align: middle;

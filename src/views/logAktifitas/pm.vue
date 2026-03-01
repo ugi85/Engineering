@@ -1,17 +1,26 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useLogAktivitas } from '@/composables/useLogAktivitas'
 import { logAktivitasApi } from '@/api/logAktivitas'
 import { printService } from '@/services/printService'
+import { usePermissions } from '@/composables/usePermissions'
 
-const { 
-  loading, 
+const {
+  loading,
   logs,
   selectedMonth,
   selectedYear,
   filterType,
   fetchData
 } = useLogAktivitas()
+
+const permission = usePermissions()
+
+// Computed untuk permission checks
+const canCreate = computed(() => permission.can('logAktivitas:create'))
+const canEdit = computed(() => permission.can('logAktivitas:edit'))
+const canDelete = computed(() => permission.can('logAktivitas:delete'))
+const isLoggedIn = computed(() => permission.isLoggedIn.value)
 
 // ✅ SET FILTER TYPE KE PM SAJA
 filterType.value = 'pm'
@@ -285,7 +294,7 @@ onMounted(() => {
                       <th style="width: 15%">Keterangan</th>
                       <th style="width: 8%">Status</th>
                       <th style="width: 5%">Aksi</th>
-                    </tr>  
+                    </tr>
                   </thead>
                   <tbody>
                     <tr v-for="(row, index) in logs" :key="'pm-' + index" :class="{'table-success': row.status === 'Selesai'}">
@@ -298,37 +307,37 @@ onMounted(() => {
                       <td class="text-center">{{ row['Due Date'] }}</td>
                       
                       <td>
-                        <input 
-                          v-model="row.pic" 
-                          type="text" 
-                          class="form-control form-control-sm" 
-                          :placeholder="row.pic || 'PIC'" 
-                          :disabled="row.status === 'Selesai'" 
-                          @keydown="preventFormSubmit" 
+                        <input
+                          v-model="row.pic"
+                          type="text"
+                          class="form-control form-control-sm"
+                          :placeholder="row.pic || 'PIC'"
+                          :disabled="row.status === 'Selesai'"
+                          @keydown="preventFormSubmit"
                         />
                       </td>
-                      
+
                       <td class="text-center">
                         <span v-if="row.status === 'Selesai'">
                           {{ formatDateDisplay(row.execute_date) }}
                         </span>
-                        <input 
+                        <input
                           v-else
-                          v-model="row.execute_date" 
+                          v-model="row.execute_date"
                           type="date"
                           class="form-control form-control-sm text-center"
                           @keydown="preventFormSubmit"
                         />
                       </td>
-                      
+
                       <td>
-                        <input 
-                          v-model="row.ket" 
-                          type="text" 
-                          class="form-control form-control-sm" 
-                          :placeholder="row.ket || 'Keterangan'" 
-                          :disabled="row.status === 'Selesai'" 
-                          @keydown="preventFormSubmit" 
+                        <input
+                          v-model="row.ket"
+                          type="text"
+                          class="form-control form-control-sm"
+                          :placeholder="row.ket || 'Keterangan'"
+                          :disabled="row.status === 'Selesai'"
+                          @keydown="preventFormSubmit"
                         />
                       </td>
                       
@@ -339,14 +348,14 @@ onMounted(() => {
                       </td>
                       
                       <td class="text-center">
-                        <button 
-                          v-if="row.status === 'Belum'" 
+                        <button
+                          v-if="isLoggedIn && row.status === 'Belum'"
                           @click="saveToLogAktivitas(row)"
                           :disabled="!row.pic || !row.execute_date || !row.ket?.trim() || savingRows.has(row['No.ID'] + '_' + row['Calibration Id.'])"
                           :class="[
                             'btn btn-sm',
-                            savingRows.has(row['No.ID'] + '_' + row['Calibration Id.']) 
-                              ? 'btn-success' 
+                            savingRows.has(row['No.ID'] + '_' + row['Calibration Id.'])
+                              ? 'btn-success'
                               : 'btn-warning'
                           ]"
                           type="button"
@@ -356,11 +365,14 @@ onMounted(() => {
                             Menyimpan...
                           </span>
                           <span v-else>
-                            <i class="fas fa-save mr-1"></i>
+                            <i class="fas fa-save"></i>
                           </span>
                         </button>
-                        <span v-else class="text-success">
+                        <span v-else-if="row.status === 'Selesai'" class="text-success">
                           <i class="fas fa-check-circle fa-lg"></i>
+                        </span>
+                        <span v-else class="text-muted small">
+                          <i class="fas fa-lock mr-1"></i>
                         </span>
                       </td>
                     </tr>

@@ -39,7 +39,11 @@ export function useDaftarAlat() {
         [10, 25, 50, 100, -1],    // nilai -1 = "All"
         [10, 25, 50, 100, "All"]  // label yang ditampilkan
         ],
-    
+        language: {
+          // url: '//cdn.datatables.net/plug-ins/1.13.4/i18n/id.json',
+          search: "_INPUT_",
+          searchPlaceholder: "Cari data..."
+        },
       })
     }
   }

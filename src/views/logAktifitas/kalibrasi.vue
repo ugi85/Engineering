@@ -1,17 +1,26 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useLogAktivitas } from '@/composables/useLogAktivitas'
 import { logAktivitasApi } from '@/api/logAktivitas' // ✅ IMPORT API LANGSUNG
 import { printService } from '@/services/printService'
+import { usePermissions } from '@/composables/usePermissions'
 
-const { 
-  loading, 
+const {
+  loading,
   logs,
   selectedMonth,
   selectedYear,
   filterType,
   fetchData
 } = useLogAktivitas()
+
+const permission = usePermissions()
+
+// Computed untuk permission checks
+const canCreate = computed(() => permission.can('logAktivitas:create'))
+const canEdit = computed(() => permission.can('logAktivitas:edit'))
+const canDelete = computed(() => permission.can('logAktivitas:delete'))
+const isLoggedIn = computed(() => permission.isLoggedIn.value)
 
 // ✅ SET FILTER TYPE KE KALIBRASI SAJA
 filterType.value = 'kalibrasi'
@@ -342,14 +351,14 @@ onMounted(() => {
                       </td>
                       
                       <td class="text-center">
-                        <button 
-                          v-if="row.status === 'Belum'" 
+                        <button
+                          v-if="isLoggedIn && row.status === 'Belum'"
                           @click="saveToLogAktivitas(row)"
                           :disabled="!row.pic || !row.execute_date || !row.ket?.trim() || savingRows.has(`${row['No.ID']}_${row['Calibration Id.']}`)"
                           :class="[
                             'btn btn-sm',
-                            savingRows.has(`${row['No.ID']}_${row['Calibration Id.']}`) 
-                              ? 'btn-success' 
+                            savingRows.has(`${row['No.ID']}_${row['Calibration Id.']}`)
+                              ? 'btn-success'
                               : 'btn-warning'
                           ]"
                           type="button"
@@ -362,8 +371,11 @@ onMounted(() => {
                             <i class="fas fa-save"></i>
                           </span>
                         </button>
-                        <span v-else class="text-success">
+                        <span v-else-if="row.status === 'Selesai'" class="text-success">
                           <i class="fas fa-check-circle fa-lg"></i>
+                        </span>
+                        <span v-else class="text-muted small">
+                          <i class="fas fa-lock mr-1"></i>
                         </span>
                       </td>
                     </tr>

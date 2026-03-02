@@ -291,6 +291,7 @@ onMounted(() => {
                       <th style="width: 10%">Proses Range</th>
                       <th style="width: 10%">Reject limit</th>
                       <th style="width: 8%">Due Date</th>
+                      <th style="width: 8%">Remark</th>
                       <th style="width: 10%">PIC</th>
                       <th style="width: 12%">Execute Date</th>
                       <th style="width: 15%">Keterangan</th>
@@ -308,15 +309,17 @@ onMounted(() => {
                       <td>{{ row['Process Range'] }}</td>
                       <td>{{ row['Reject Error Limit'] }}</td>
                       <td class="text-center">{{ row['Due Date'] }}</td>
+                      <td class="text-center">{{ row['Remark'] }}</td>
                       
                       <td>
-                        <input 
-                          v-model="row.pic" 
-                          type="text" 
-                          class="form-control form-control-sm" 
-                          :placeholder="row.pic || 'PIC'" 
-                          :disabled="row.status === 'Selesai'" 
-                          @keydown="preventFormSubmit" 
+                        <input
+                          v-model="row.pic"
+                          type="text"
+                          class="form-control form-control-sm"
+                          :placeholder="row.pic || 'PIC'"
+                          :disabled="row.status === 'Selesai'"
+                          @keydown="preventFormSubmit"
+                          style="min-width: 50px; width: 100%;"
                         />
                       </td>
                       
@@ -334,13 +337,14 @@ onMounted(() => {
                       </td>
                       
                       <td>
-                        <input 
-                          v-model="row.ket" 
-                          type="text" 
-                          class="form-control form-control-sm" 
-                          :placeholder="row.ket || 'Keterangan'" 
-                          :disabled="row.status === 'Selesai'" 
-                          @keydown="preventFormSubmit" 
+                        <input
+                          v-model="row.ket"
+                          type="text"
+                          class="form-control form-control-sm"
+                          :placeholder="row.ket || 'Keterangan'"
+                          :disabled="row.status === 'Selesai'"
+                          @keydown="preventFormSubmit"
+                          style="min-width: 100px; width: 100%;"
                         />
                       </td>
                       
@@ -399,13 +403,25 @@ onMounted(() => {
 </template>
 
 <style scoped>
-.table-responsive { 
-  overflow-x: auto; 
+.table-responsive {
+  overflow-x: auto;
 }
 
-.table thead th { 
-  background-color: #f0f4f7; 
-  font-weight: 600; 
+.table thead th {
+  background-color: #f0f4f7;
+  font-weight: 600;
+  white-space: normal;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  max-width: 150px;
+  vertical-align: middle;
+}
+
+.table tbody td {
+  white-space: normal;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  vertical-align: middle;
 }
 
 .table tbody tr.table-success { 
@@ -484,10 +500,20 @@ onMounted(() => {
 .form-control-sm {
   padding: 0.25rem 0.5rem;
   font-size: 0.875rem;
+  white-space: normal;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  height: auto;
+  min-height: 31px;
 }
 
 .form-control-sm.text-center {
   text-align: center;
+}
+
+/* Khusus input PIC dan Keterangan agar bisa wrap */
+td:has(.form-control-sm) {
+  vertical-align: top;
 }
 
 /* print-specific helpers */

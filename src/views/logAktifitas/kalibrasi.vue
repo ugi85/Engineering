@@ -4,6 +4,7 @@ import { useLogAktivitas } from '@/composables/useLogAktivitas'
 import { logAktivitasApi } from '@/api/logAktivitas' // ✅ IMPORT API LANGSUNG
 import { printService } from '@/services/printService'
 import { usePermissions } from '@/composables/usePermissions'
+import { useUsers } from '@/composables/useUsers'
 
 const {
   loading,
@@ -15,6 +16,7 @@ const {
 } = useLogAktivitas()
 
 const permission = usePermissions()
+const { users, fetchUsers } = useUsers()
 
 // Computed untuk permission checks
 const canCreate = computed(() => permission.can('logAktivitas:create'))
@@ -28,6 +30,42 @@ filterType.value = 'kalibrasi'
 // State untuk tracking
 const dataLoaded = ref(false)
 const savingRows = ref(new Set()) // ✅ UNTUK TRACKING PER-BARIS SAJA
+
+// State untuk users
+const usersLoading = ref(false)
+const openDropdownId = ref(null) // Track dropdown yang sedang terbuka
+
+// Computed untuk dropdown options (format: "Nama (INISIAL)") - exclude superadmin
+const userOptions = computed(() => {
+  return users.value
+    .filter(user => user.role !== 'superadmin')
+    .map(user => ({
+      value: user.inisial || user.nama,
+      label: `${user.nama} (${user.inisial || '-'})`
+    }))
+})
+
+// Fungsi untuk mendapatkan inisial dari value
+const getPicInisial = (picValue) => {
+  const user = users.value.find(u => (u.inisial || u.nama) === picValue)
+  return user?.inisial || picValue
+}
+
+// Toggle dropdown
+const toggleDropdown = (rowId) => {
+  openDropdownId.value = openDropdownId.value === rowId ? null : rowId
+}
+
+// Pilih user dari dropdown
+const selectUser = (row, userValue) => {
+  row.pic = userValue
+  openDropdownId.value = null
+}
+
+// Close dropdown saat klik di luar
+const closeAllDropdowns = () => {
+  openDropdownId.value = null
+}
 
 // Daftar bulan
 const months = [
@@ -194,9 +232,22 @@ const preventFormSubmit = (event) => {
   }
 }
 
-onMounted(() => {
+onMounted(async () => {
   selectedMonth.value = 'January'
   selectedYear.value = new Date().getFullYear().toString()
+  
+  // Fetch users untuk dropdown PIC
+  usersLoading.value = true
+  try {
+    await fetchUsers()
+  } catch (error) {
+    console.error('Gagal load data user:', error)
+  } finally {
+    usersLoading.value = false
+  }
+  
+  // Close dropdown saat klik di luar
+  document.addEventListener('click', closeAllDropdowns)
 })
 </script>
 
@@ -312,15 +363,42 @@ onMounted(() => {
                       <td class="text-center">{{ row['Remark'] }}</td>
                       
                       <td>
-                        <input
-                          v-model="row.pic"
-                          type="text"
-                          class="form-control form-control-sm"
-                          :placeholder="row.pic || 'PIC'"
-                          :disabled="row.status === 'Selesai'"
-                          @keydown="preventFormSubmit"
-                          style="min-width: 50px; width: 100%;"
-                        />
+                        <!-- Tampilkan hanya inisial saat status Selesai -->
+                        <span v-if="row.status === 'Selesai'" class="text-center d-block">
+                          {{ getPicInisial(row.pic) }}
+                        </span>
+                        
+                        <!-- Custom dropdown saat status Belum -->
+                        <div v-else class="dropdown-container" style="position: relative;" @click.stop>
+                          <button
+                            type="button"
+                            class="form-control form-control-sm text-left"
+                            :disabled="usersLoading"
+                            @click="toggleDropdown(`kalibrasi-${index}`)"
+                            style="min-width: 100px; width: 100%; text-align: left;"
+                          >
+                            {{ row.pic ? getPicInisial(row.pic) : 'Pilih PIC' }}
+                            <span class="float-right">▼</span>
+                          </button>
+                          
+                          <!-- Dropdown menu -->
+                          <div
+                            v-if="openDropdownId === `kalibrasi-${index}`"
+                            class="dropdown-menu show"
+                            style="display: block; max-height: 200px; overflow-y: auto; position: absolute; z-index: 1000;"
+                          >
+                            <option 
+                              v-for="user in userOptions" 
+                              :key="user.value" 
+                              :value="user.value"
+                              @click="selectUser(row, user.value)"
+                              class="dropdown-item"
+                              style="cursor: pointer; padding: 0.25rem 0.5rem;"
+                            >
+                              {{ user.label }}
+                            </option>
+                          </div>
+                        </div>
                       </td>
                       
                       <td class="text-center">
@@ -485,6 +563,40 @@ onMounted(() => {
 .table th.text-center {
   text-align: center;
   vertical-align: middle;
+}
+
+/* Custom dropdown untuk PIC */
+.dropdown-container {
+  position: relative;
+}
+
+.dropdown-container button {
+  text-align: left;
+  position: relative;
+}
+
+.dropdown-container button .float-right {
+  float: right;
+  font-size: 0.7em;
+  margin-top: 3px;
+}
+
+.dropdown-menu.show {
+  background-color: white;
+  border: 1px solid #ced4da;
+  border-radius: 0.25rem;
+  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+  width: 100%;
+  min-width: 150px;
+  margin-top: 2px;
+}
+
+.dropdown-menu.show .dropdown-item:hover {
+  background-color: #f8f9fa;
+}
+
+.text-left {
+  text-align: left !important;
 }
 
 .table-sm {

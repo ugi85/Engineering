@@ -314,6 +314,7 @@ onMounted(() => {
                           :placeholder="row.pic || 'PIC'"
                           :disabled="row.status === 'Selesai'"
                           @keydown="preventFormSubmit"
+                          style="min-width: 50px; width: 100%;"
                         />
                       </td>
 
@@ -327,6 +328,7 @@ onMounted(() => {
                           type="date"
                           class="form-control form-control-sm text-center"
                           @keydown="preventFormSubmit"
+                          style="min-width: 100px; width: 100%;"
                         />
                       </td>
 

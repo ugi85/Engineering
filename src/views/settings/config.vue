@@ -15,7 +15,7 @@
             </ol>
           </div>
         </div>
-      </div>
+      </div>jika
     </section>
 
     <section class="content">
@@ -237,17 +237,17 @@
                   />
                 </div>
                 <div class="custom-file">
-                  <input 
-                    type="file" 
-                    class="custom-file-input" 
-                    id="logoUpload" 
+                  <input
+                    type="file"
+                    class="custom-file-input"
+                    id="logoUpload"
                     accept="image/*"
                     @change="handleLogoUpload"
                   />
-                  <label class="custom-file-label" for="logoUpload">Pilih file logo (max 100KB)</label>
+                  <label class="custom-file-label" for="logoUpload">Pilih file logo (auto-compress)</label>
                 </div>
                 <small class="form-text text-muted mt-2">
-                  Format: PNG, JPG | Maks: 100KB<br>
+                  Format: PNG, JPG | Auto-compress: Max 800x600px<br>
                   <strong>Favicon akan otomatis dibuat dari logo</strong>
                 </small>
                 <div class="mt-3 text-center">
@@ -292,10 +292,10 @@
                     accept="image/*"
                     @change="handleCompanyLogoUpload"
                   />
-                  <label class="custom-file-label" for="companyLogoUpload">Pilih file logo (max 100KB)</label>
+                  <label class="custom-file-label" for="companyLogoUpload">Pilih file logo (auto-compress)</label>
                 </div>
                 <small class="form-text text-muted mt-2">
-                  Format: PNG, JPG | Maks: 100KB<br>
+                  Format: PNG, JPG | Auto-compress: Max 800x600px<br>
                   <strong>Digunakan untuk header print dokumen</strong>
                 </small>
                 <button
@@ -563,6 +563,50 @@ const generateFaviconFromImage = (dataUrl) => {
   img.src = dataUrl
 }
 
+// ✅ AUTO-COMPRESS IMAGE sebelum upload
+const compressImage = (file, maxWidth = 800, maxHeight = 600, quality = 0.8) => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      const img = new Image()
+      img.onload = () => {
+        // Hitung ukuran baru dengan maintain aspect ratio
+        let width = img.width
+        let height = img.height
+        
+        if (width > maxWidth) {
+          height = (height * maxWidth) / width
+          width = maxWidth
+        }
+        
+        if (height > maxHeight) {
+          width = (width * maxHeight) / height
+          height = maxHeight
+        }
+        
+        // Create canvas dan resize
+        const canvas = document.createElement('canvas')
+        canvas.width = width
+        canvas.height = height
+        const ctx = canvas.getContext('2d')
+        ctx.drawImage(img, 0, 0, width, height)
+        
+        // Compress dan convert ke dataURL
+        const compressedDataUrl = canvas.toDataURL('image/jpeg', quality)
+        
+        console.log('[Compress] Original:', img.width, 'x', img.height, '|', Math.round(file.size / 1024), 'KB')
+        console.log('[Compress] Compressed:', width, 'x', height, '|', Math.round(compressedDataUrl.length * 3 / 4 / 1024), 'KB')
+        
+        resolve(compressedDataUrl)
+      }
+      img.onerror = reject
+      img.src = e.target.result
+    }
+    reader.onerror = reject
+    reader.readAsDataURL(file)
+  })
+}
+
 // ✅ HANDLE UPLOAD LOGO with confirmation - Upload ke Vercel Blob
 const handleLogoUpload = async (event) => {
   const file = event.target.files[0]
@@ -579,23 +623,12 @@ const handleLogoUpload = async (event) => {
     }
     return
   }
-  if (file.size > 100 * 1024) {
-    if (window.Swal) {
-      window.Swal.fire({
-        icon: 'error',
-        title: 'Gagal Upload!',
-        text: 'Ukuran logo maksimal 100KB',
-        confirmButtonText: 'OK'
-      })
-    }
-    return
-  }
 
   // Show loading
   if (window.Swal) {
     window.Swal.fire({
       title: 'Mengupload...',
-      text: 'Logo sedang diupload ke server',
+      text: 'Logo sedang dikompres dan diupload ke server',
       allowOutsideClick: false,
       didOpen: () => {
         window.Swal.showLoading()
@@ -604,19 +637,27 @@ const handleLogoUpload = async (event) => {
   }
 
   try {
-    // Upload ke API
-    const result = await uploadLogo(file)
+    // Auto-compress image
+    const compressedDataUrl = await compressImage(file, 800, 600, 0.8)
     
+    // Convert dataURL ke File untuk upload
+    const response = await fetch(compressedDataUrl)
+    const blob = await response.blob()
+    const compressedFile = new File([blob], file.name, { type: 'image/jpeg' })
+
+    // Upload ke API
+    const result = await uploadLogo(compressedFile)
+
     // Update draft untuk preview
     draftLogo.value = result.logoUrl
     draft.value.logoUrl = result.logoUrl
     draft.value.faviconUrl = result.faviconUrl
-    
+
     if (window.Swal) {
       window.Swal.fire({
         icon: 'success',
         title: 'Berhasil!',
-        text: 'Logo berhasil diupload',
+        text: 'Logo berhasil diupload dan dikompres otomatis',
         timer: 1500,
         showConfirmButton: false
       })
@@ -631,7 +672,7 @@ const handleLogoUpload = async (event) => {
       })
     }
   }
-  
+
   event.target.value = ''
 }
 
@@ -745,25 +786,27 @@ const handleCompanyLogoUpload = async (event) => {
     }
     return
   }
-  if (file.size > 100 * 1024) {
-    if (window.Swal) {
-      window.Swal.fire({ icon: 'error', title: 'Gagal Upload!', text: 'Ukuran maksimal 100KB', confirmButtonText: 'OK' })
-    }
-    return
-  }
 
   if (window.Swal) {
-    window.Swal.fire({ title: 'Mengupload...', text: 'Logo perusahaan sedang diupload', allowOutsideClick: false, didOpen: () => { window.Swal.showLoading() } })
+    window.Swal.fire({ title: 'Mengupload...', text: 'Logo perusahaan sedang dikompres dan diupload', allowOutsideClick: false, didOpen: () => { window.Swal.showLoading() } })
   }
 
   try {
-    const result = await uploadLogo(file, 'logo perusahaan')
+    // Auto-compress image
+    const compressedDataUrl = await compressImage(file, 800, 600, 0.8)
+    
+    // Convert dataURL ke File untuk upload
+    const response = await fetch(compressedDataUrl)
+    const blob = await response.blob()
+    const compressedFile = new File([blob], file.name, { type: 'image/jpeg' })
+    
+    const result = await uploadLogo(compressedFile, 'logo perusahaan')
     draftCompanyLogo.value = result.logoUrl
     draft.value.logoPerusahaanUrl = result.logoUrl
     draft.value.logoPerusahaanDataUrl = result.logoUrl
 
     if (window.Swal) {
-      window.Swal.fire({ icon: 'success', title: 'Berhasil!', text: 'Logo perusahaan berhasil diupload', timer: 1500, showConfirmButton: false })
+      window.Swal.fire({ icon: 'success', title: 'Berhasil!', text: 'Logo perusahaan berhasil diupload dan dikompres otomatis', timer: 1500, showConfirmButton: false })
     }
   } catch (error) {
     if (window.Swal) {

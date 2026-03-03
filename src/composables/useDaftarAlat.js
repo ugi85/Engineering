@@ -28,13 +28,14 @@ export function useDaftarAlat() {
       // @ts-ignore
       dataTableInstance = $(table).DataTable({
         paging: true,
-        lengthChange: true, 
+        lengthChange: true,
         searching: true,
         ordering: true,
-        info: true, 
-        autoWidth: true,
+        info: true,
+        autoWidth: false,
         responsive: false,
         scrollX: true,
+        scrollCollapse: true,
         lengthMenu: [
         [10, 25, 50, 100, -1],    // nilai -1 = "All"
         [10, 25, 50, 100, "All"]  // label yang ditampilkan
@@ -44,6 +45,19 @@ export function useDaftarAlat() {
           search: "_INPUT_",
           searchPlaceholder: "Cari data..."
         },
+        columnDefs: [
+          { targets: 1, width: "40px" },   // Kolom No (index ke-1)
+        ],
+        createdRow: function(row, data, dataIndex) {
+          // Force kolom No lebih kecil
+          const noCell = row.cells[1]
+          if (noCell) {
+            noCell.style.width = '40px'
+            noCell.style.minWidth = '40px'
+            noCell.style.maxWidth = '40px'
+            noCell.style.textAlign = 'center'
+          }
+        }
       })
     }
   }

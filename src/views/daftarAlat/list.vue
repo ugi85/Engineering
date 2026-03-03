@@ -332,7 +332,7 @@ onMounted(async () => {
                         :disabled="!bulkDeleteMode"
                       />
                     </th>
-                    <th rowspan="2" class="align-middle">No</th>
+                    <th rowspan="2" class="align-middle no-column">No</th>
                     <th rowspan="2" class="align-middle">No. ID</th>
                     <th rowspan="2" class="align-middle">Description</th>
                     <th rowspan="2" class="align-middle">Type/Model</th>
@@ -666,6 +666,21 @@ onMounted(async () => {
 .daftar-alat-table td {
   white-space: nowrap;
   padding: 0.5rem;
+}
+
+/* ✅ Kolom No - lebar kecil */
+.daftar-alat-table .no-column {
+  width: 40px !important;
+  min-width: 40px !important;
+  max-width: 40px !important;
+  text-align: center;
+}
+
+.daftar-alat-table td:nth-child(2) {
+  width: 40px !important;
+  min-width: 40px !important;
+  max-width: 40px !important;
+  text-align: center;
 }
 
 /* Kolom centered */

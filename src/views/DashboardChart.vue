@@ -202,8 +202,8 @@
                       </td>
                       <td class="text-center">
                         <div class="progress progress-xs mb-2">
-                          <div 
-                            class="progress-bar" 
+                          <div
+                            class="progress-bar"
                             :class="item.executedPercentage === 100 && item.count > 0 ? 'bg-success' : 'bg-info'"
                             :style="{ width: (item.executedPercentage || 0) + '%' }"
                           >
@@ -249,8 +249,8 @@
                       </td>
                       <td class="text-center">
                         <div class="progress progress-xs mb-2">
-                          <div 
-                            class="progress-bar" 
+                          <div
+                            class="progress-bar"
                             :class="item.executedPercentage === 100 && item.count > 0 ? 'bg-success' : 'bg-warning'"
                             :style="{ width: (item.executedPercentage || 0) + '%' }"
                           >
@@ -433,8 +433,8 @@ const initPieChart = () => {
 }
 
 // ✅ WATCH UNTUK UPDATE CHART SAAT DATA BERUBAH
-watch([kalibrasiMonthly, pmMonthly], () => {
-  if (!loading.value && chartRef.value) {
+watch([kalibrasiMonthly, pmMonthly, isInitialized], () => {
+  if (!loading.value && chartRef.value && isInitialized.value) {
     if (chartInstance) {
       // Update existing chart
       chartInstance.data = chartData.value
@@ -447,8 +447,8 @@ watch([kalibrasiMonthly, pmMonthly], () => {
 })
 
 // ✅ WATCH UNTUK UPDATE PIE CHART SAAT DATA BERUBAH
-watch([currentMonthStats], () => {
-  if (!loading.value && pieChartRef.value) {
+watch([currentMonthStats, isInitialized], () => {
+  if (!loading.value && pieChartRef.value && isInitialized.value) {
     if (pieChartInstance) {
       // Update existing pie chart
       pieChartInstance.data = pieChartData.value

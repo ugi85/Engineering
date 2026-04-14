@@ -19,7 +19,7 @@ export function useDashboard() {
   const kalibrasiMonthly = ref([])
   const pmMonthly = ref([])
   const selectedYear = ref(new Date().getFullYear().toString())
-  
+
   let refreshIntervalId = null
 
   // ✅ CHART DATA - REACTIVE KE DATA BULANAN
@@ -28,7 +28,7 @@ export function useDashboard() {
       'January', 'February', 'March', 'April', 'May', 'June',
       'July', 'August', 'September', 'October', 'November', 'December'
     ]
-    
+
     return {
       labels: labels.map(month => month.substring(0, 3)),
       datasets: [
@@ -129,16 +129,18 @@ export function useDashboard() {
         totalEquipment.value = cachedData.totalEquipment
         totalKalibrasi.value = cachedData.totalKalibrasi
         totalPM.value = cachedData.totalPM
-        kalibrasiMonthly.value = cachedData.kalibrasiMonthly
-        pmMonthly.value = cachedData.pmMonthly
+        kalibrasiMonthly.value = cachedData.kalibrasiMonthly || []
+        pmMonthly.value = cachedData.pmMonthly || []
         selectedYear.value = cachedData.year || year
-        
+
+        // ✅ Set isInitialized BEFORE returning
+        isInitialized.value = true
+
         // Update di background
         setTimeout(() => {
           refreshDashboardData(year)
         }, 100)
-        
-        isInitialized.value = true
+
         return
       }
     }
@@ -155,14 +157,17 @@ export function useDashboard() {
         logAktivitasApi.getTotalDaftarAlat(),
         logAktivitasApi.getTotalSchedules(year)
       ])
-      
+
       totalEquipment.value = equipmentData.total
       totalKalibrasi.value = schedulesData.totalKalibrasi
       totalPM.value = schedulesData.totalPM
-      kalibrasiMonthly.value = schedulesData.kalibrasiMonthly
-      pmMonthly.value = schedulesData.pmMonthly
+      kalibrasiMonthly.value = schedulesData.kalibrasiMonthly || []
+      pmMonthly.value = schedulesData.pmMonthly || []
       selectedYear.value = year
-      
+
+      // ✅ Set isInitialized AFTER data is fully loaded
+      isInitialized.value = true
+
       // Simpan ke cache
       saveToCache({
         totalEquipment: equipmentData.total,
@@ -172,8 +177,6 @@ export function useDashboard() {
         pmMonthly: schedulesData.pmMonthly,
         year
       })
-      
-      isInitialized.value = true
     } catch (err) {
       console.error('Error fetching dashboard ', err)
       error.value = err.message || 'Gagal memuat data dashboard'

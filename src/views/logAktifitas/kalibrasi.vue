@@ -348,7 +348,7 @@ onMounted(async () => {
                       <th style="width: 15%">Keterangan</th>
                       <th style="width: 8%">Status</th>
                       <th style="width: 5%">Aksi</th>
-                    </tr>  
+                    </tr>
                   </thead>
                   <tbody>
                     <tr v-for="(row, index) in logs" :key="`kalibrasi-${index}`" :class="{'table-success': row.status === 'Selesai'}">

@@ -7,7 +7,7 @@
           <i class="fas fa-rocket"></i>
         </div>
         <h1 class="title">Update System !</h1>
-        <p class="subtitle">Saya telah meningkatkan performa sistem untuk pengalaman yang lebih optimal dan cepat</p>
+        <p class="subtitle">Saya telah meningkatkan performa sistem untuk pengalaman yang lebih optimal dan cepat.</p>
       </div>
 
       <!-- Information cards -->

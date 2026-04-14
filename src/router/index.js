@@ -1,458 +1,541 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { userStore } from '@/stores/userStore'
 
-//layouts
+// Layouts
 import MainLayout from '@/layouts/MainLayout.vue'
 import AuthLayout from '@/layouts/AuthLayout.vue'
 
-//views
+// Views
 import Dashboard from '@/views/DashboardChart.vue'
 import Login from '@/views/pages/examples/login.vue'
+import SystemMigration from '@/views/SystemMigration.vue'
 
-const router = createRouter({
-  history: createWebHistory(import.meta.env.BASE_URL),
-  routes: [
-    {
-      path:'/',
-      component: MainLayout,
-      children: [
-        {
-          path: '/',
-          name: 'dashboard',
-          component: Dashboard,
-        },
-    {
-      path: '/dashboardV2',
-      name: 'dashboardV2',
-      component: () => import('@/views/DashboardV2.vue'),
-    },
-    {
-      path: '/dashboardV3',
-      name: 'dashboardV3',
-      component: () => import('@/views/DashboardV3.vue'),
-    },
-    {
-      path: '/dashChart',
-      name: 'dashboardChart',
-      component: () => import('@/views/DashboardChart.vue'),
-    },
-     {
-      path: '/daftarAlat',
-      name: 'daftarAlat',
-      component: () => import('@/views/daftarAlat/list.vue'),
-    },
-       {
-      path: '/jadwalKalibrasi',
-      name: 'jadwalKalibrasi',
-      component: () => import('@/views/jadwalKalibrasi/list.vue'),
-    },
-       {
-      path: '/logCal',
-      name: 'logCal',
-      component: () => import('@/views/logAktifitas/kalibrasi.vue'),
-    },
-     {
-      path: '/logPm',
-      name: 'logPm',
-      component: () => import('@/views/logAktifitas/pm.vue'),
-    },
-    {
-      path: '/allAktivitas',
-      name: 'allAktivitas',
-      component: () => import('@/views/logAktifitas/allAktivitas.vue'),
-    },
-     {
-      path: '/configurasi',
-      name: 'configurasi',
-      component: () => import('@/views/settings/config.vue'),
-    },
-     {
-      path: '/roles',
-      name: 'roles',
-      component: () => import('@/views/roles/list.vue'),
-      meta: { requiresAuth: true, requiresSuperadmin: true }
-    },
-     {
-      path: '/user',
-      name: 'user',
-      component: () => import('@/views/users/list.vue'),
-      meta: { requiresAuth: true, requiresAdmin: true }
-    },
-     {
-      path: '/chartMonitoring',
-      name: 'chartMonitoring',
-      component: () => import('@/views/ChartsMonitoring.vue'),
-    },
+// ============================================
+// URL SWITCH CONFIGURATION
+// ============================================
+// VITE_SYSTEM_MODE in .env:
+//   - 'landing': Root shows System Migration info page (default)
+//   - 'old': Root directly shows old system dashboard
+// ============================================
+const SYSTEM_MODE = import.meta.env.VITE_SYSTEM_MODE || 'landing'
 
-    {
-      path: '/widgets',
-      name: 'widgets',
-      component: () => import('@/views/pages/widgets.vue'),
-    },
-     {
-      path: '/top-nav',
-      name: 'top-nav',
-      component: () => import('@/views/pages/layout/top-nav.vue'),
-    },
-     {
-      path: '/top-nav-sidebar',
-      name: 'top-nav-sidebar',
-      component: () => import('@/views/pages/layout/top-nav-sidebar.vue'),
-    },
-     {
-      path: '/boxed',
-      name: 'boxed',
-      component: () => import('@/views/pages/layout/boxed.vue'),
-    },
-    {
-      path: '/charts',
-      name: 'charts',
-      component: () => import('@/views/pages/charts/chartjs.vue'),
-    },
-    {
-      path: '/charts/flot',
-      name: 'charts-flot',
-      component: () => import('@/views/pages/charts/flot.vue'),
-    },
-    {
-      path: '/charts/inline',
-      name: 'charts-inline',
-      component: () => import('@/views/pages/charts/inline.vue'),
-    },
-    {
-      path: '/charts/uplot',
-      name: 'charts-uplot',
-      component: () => import('@/views/pages/charts/uplot.vue'),
-    },
-    {
-      path: '/ui/general',
-      name: 'ui-general',
-      component: () => import('@/views/pages/ui/general.vue'),
-    },
-    {
-      path: '/ui/icons',
-      name: 'ui-icons',
-      component: () => import('@/views/pages/ui/icons.vue'),
-    },
-    {
-      path: '/ui/buttons',
-      name: 'ui-buttons',
-      component: () => import('@/views/pages/ui/buttons.vue'),
-    },
-    {
-      path: '/ui/sliders',
-      name: 'ui-sliders',
-      component: () => import('@/views/pages/ui/sliders.vue'),
-    },
-    {
-      path: '/ui/modals',
-      name: 'ui-modals',
-      component: () => import('@/views/pages/ui/modal.vue'),
-    },
-    {
-      path: '/ui/navbar',
-      name: 'ui-navbar',
-      component: () => import('@/views/pages/ui/navbar.vue'),
-    },
-    {
-      path: '/ui/timeline',
-      name: 'ui-timeline',
-      component: () => import('@/views/pages/ui/timeline.vue'),
-    },
-    {
-      path: '/ui/ribbons',
-      name: 'ui-ribbons',
-      component: () => import('@/views/pages/ui/ribbons.vue'),
-    },
-    {
-      path: '/forms/general',
-      name: 'forms-general',
-      component: () => import('@/views/pages/forms/general.vue'),
-    },
-     {
-      path: '/forms/advanced',
-      name: 'forms-advanced',
-      component: () => import('@/views/pages/forms/advanced.vue'),
-    },
-    {
-      path: '/forms/editors',
-      name: 'forms-editors',
-      component: () => import('@/views/pages/forms/editors.vue'),
-    },
-    {
-      path: '/forms/validation',
-      name: 'forms-validation',
-      component: () => import('@/views/pages/forms/validation.vue'),
-    },
-    {
-      path: '/tables/simple',
-      name: 'tables-simple',
-      component: () => import('@/views/pages/tables/simple.vue'),
-    },
-    {
-      path: '/tables/data',
-      name: 'tables-data',
-      component: () => import('@/views/pages/tables/data.vue'),
-    },
-    {
-      path: '/tables/jsgrid',
-      name: 'tables-jsgrid',
-      component: () => import('@/views/pages/tables/jsgrid.vue'),
-    },
-    {
-      path: '/calendar',
-      name: 'calendar',
-      component: () => import('@/views/pages/calendar.vue'),
-    },
-     {
-      path: '/gallery',
-      name: 'gallery',
-      component: () => import('@/views/pages/gallery.vue'),
-    },
-    {
-      path: '/kanban',
-      name: 'kanban',
-      component: () => import('@/views/pages/kanban.vue'),
-    },
-    {
-      path: '/mailbox/inbox',
-      name: 'mailbox-inbox',
-      component: () => import('@/views/pages/mailbox/mailbox.vue'),
-    },
-    {
-      path: '/mailbox/compose',
-      name: 'mailbox-compose',
-      component: () => import('@/views/pages/mailbox/compose.vue'),
-    },
-    {
-      path: '/mailbox/read-mail',
-      name: 'mailbox-read-mail',
-      component: () => import('@/views/pages/mailbox/read-mail.vue'),
-    },
-     {
-      path: '/examples/invoice',
-      name: 'examples-invoice',
-      component: () => import('@/views/pages/examples/invoice.vue'),
-    },
-     {
-      path: '/examples/profile',
-      name: 'examples-profile',
-      component: () => import('@/views/pages/examples/profile.vue'),
-    },
-    {
-      path: '/examples/e-commerce',
-      name: 'examples-e-commerce',
-      component: () => import('@/views/pages/examples/e-commerce.vue'),
-    },
-    {
-      path: '/examples/projects',
-      name: 'examples-projects',
-      component: () => import('@/views/pages/examples/projects.vue'),
-    },
-    {
-      path: '/examples/project-add',
-      name: 'examples-project-add',
-      component: () => import('@/views/pages/examples/project-add.vue'),
-    },
-    {
-      path: '/examples/project-edit',
-      name: 'examples-project-edit',
-      component: () => import('@/views/pages/examples/project-edit.vue'),
-    },
-    {
-      path: '/examples/project-detail',
-      name: 'examples-project-detail',
-      component: () => import('@/views/pages/examples/project-detail.vue'),
-    },
-    {
-      path: '/examples/contacts',
-      name: 'examples-contacts',
-      component: () => import('@/views/pages/examples/contacts.vue'),
-    },
-    {
-      path: '/examples/faq',
-      name: 'examples-faq',
-      component: () => import('@/views/pages/examples/faq.vue'),
-    },
-     {
-      path: '/examples/contact-us',
-      name: 'examples-contact-us',
-      component: () => import('@/views/pages/examples/contact-us.vue'),
-    },
-    {
-        path: '/examples/legacy-user-menu',
-        name: 'legacy-user-menu',
+// Helper function for URL generation (can be used in components)
+const generateUrl = (oldPath, newPath) => {
+  if (SYSTEM_MODE === 'old') return oldPath
+  return newPath || `/old${oldPath}`
+}
+
+// ============================================
+// ROUTE DEFINITIONS
+// ============================================
+const routes = [
+  // ========================================
+  // 1. LANDING PAGE - System Migration Info
+  // ========================================
+  {
+    path: '/',
+    name: 'system-migration',
+    component: SystemMigration,
+    meta: { title: 'Informasi Update Sistem' }
+  },
+
+  // ========================================
+  // 2. OLD SYSTEM - Wrapped in MainLayout
+  // ========================================
+  {
+    path: '/old',
+    component: MainLayout,
+    children: [
+      {
+        path: '',
+        name: 'old-dashboard',
+        component: Dashboard,
+      },
+      {
+        path: 'dashboard',
+        name: 'old-dashboard-redirect',
+        redirect: { name: 'old-dashboard' }
+      },
+      {
+        path: 'dashboardV2',
+        name: 'old-dashboardV2',
+        component: () => import('@/views/DashboardV2.vue'),
+      },
+      {
+        path: 'dashboardV3',
+        name: 'old-dashboardV3',
+        component: () => import('@/views/DashboardV3.vue'),
+      },
+      {
+        path: 'dashChart',
+        name: 'old-dashboardChart',
+        component: () => import('@/views/DashboardChart.vue'),
+      },
+      {
+        path: 'daftarAlat',
+        name: 'old-daftarAlat',
+        component: () => import('@/views/daftarAlat/list.vue'),
+      },
+      {
+        path: 'jadwalKalibrasi',
+        name: 'old-jadwalKalibrasi',
+        component: () => import('@/views/jadwalKalibrasi/list.vue'),
+      },
+      {
+        path: 'logCal',
+        name: 'old-logCal',
+        component: () => import('@/views/logAktifitas/kalibrasi.vue'),
+      },
+      {
+        path: 'logPm',
+        name: 'old-logPm',
+        component: () => import('@/views/logAktifitas/pm.vue'),
+      },
+      {
+        path: 'allAktivitas',
+        name: 'old-allAktivitas',
+        component: () => import('@/views/logAktifitas/allAktivitas.vue'),
+      },
+      {
+        path: 'configurasi',
+        name: 'old-configurasi',
+        component: () => import('@/views/settings/config.vue'),
+      },
+      {
+        path: 'roles',
+        name: 'old-roles',
+        component: () => import('@/views/roles/list.vue'),
+        meta: { requiresAuth: true, requiresSuperadmin: true }
+      },
+      {
+        path: 'user',
+        name: 'old-user',
+        component: () => import('@/views/users/list.vue'),
+        meta: { requiresAuth: true, requiresAdmin: true }
+      },
+      {
+        path: 'chartMonitoring',
+        name: 'old-chartMonitoring',
+        component: () => import('@/views/ChartsMonitoring.vue'),
+      },
+      {
+        path: 'widgets',
+        name: 'old-widgets',
+        component: () => import('@/views/pages/widgets.vue'),
+      },
+      {
+        path: 'top-nav',
+        name: 'old-top-nav',
+        component: () => import('@/views/pages/layout/top-nav.vue'),
+      },
+      {
+        path: 'top-nav-sidebar',
+        name: 'old-top-nav-sidebar',
+        component: () => import('@/views/pages/layout/top-nav-sidebar.vue'),
+      },
+      {
+        path: 'boxed',
+        name: 'old-boxed',
+        component: () => import('@/views/pages/layout/boxed.vue'),
+      },
+      {
+        path: 'charts',
+        name: 'old-charts',
+        component: () => import('@/views/pages/charts/chartjs.vue'),
+      },
+      {
+        path: 'charts/flot',
+        name: 'old-charts-flot',
+        component: () => import('@/views/pages/charts/flot.vue'),
+      },
+      {
+        path: 'charts/inline',
+        name: 'old-charts-inline',
+        component: () => import('@/views/pages/charts/inline.vue'),
+      },
+      {
+        path: 'charts/uplot',
+        name: 'old-charts-uplot',
+        component: () => import('@/views/pages/charts/uplot.vue'),
+      },
+      {
+        path: 'ui/general',
+        name: 'old-ui-general',
+        component: () => import('@/views/pages/ui/general.vue'),
+      },
+      {
+        path: 'ui/icons',
+        name: 'old-ui-icons',
+        component: () => import('@/views/pages/ui/icons.vue'),
+      },
+      {
+        path: 'ui/buttons',
+        name: 'old-ui-buttons',
+        component: () => import('@/views/pages/ui/buttons.vue'),
+      },
+      {
+        path: 'ui/sliders',
+        name: 'old-ui-sliders',
+        component: () => import('@/views/pages/ui/sliders.vue'),
+      },
+      {
+        path: 'ui/modals',
+        name: 'old-ui-modals',
+        component: () => import('@/views/pages/ui/modal.vue'),
+      },
+      {
+        path: 'ui/navbar',
+        name: 'old-ui-navbar',
+        component: () => import('@/views/pages/ui/navbar.vue'),
+      },
+      {
+        path: 'ui/timeline',
+        name: 'old-ui-timeline',
+        component: () => import('@/views/pages/ui/timeline.vue'),
+      },
+      {
+        path: 'ui/ribbons',
+        name: 'old-ui-ribbons',
+        component: () => import('@/views/pages/ui/ribbons.vue'),
+      },
+      {
+        path: 'forms/general',
+        name: 'old-forms-general',
+        component: () => import('@/views/pages/forms/general.vue'),
+      },
+      {
+        path: 'forms/advanced',
+        name: 'old-forms-advanced',
+        component: () => import('@/views/pages/forms/advanced.vue'),
+      },
+      {
+        path: 'forms/editors',
+        name: 'old-forms-editors',
+        component: () => import('@/views/pages/forms/editors.vue'),
+      },
+      {
+        path: 'forms/validation',
+        name: 'old-forms-validation',
+        component: () => import('@/views/pages/forms/validation.vue'),
+      },
+      {
+        path: 'tables/simple',
+        name: 'old-tables-simple',
+        component: () => import('@/views/pages/tables/simple.vue'),
+      },
+      {
+        path: 'tables/data',
+        name: 'old-tables-data',
+        component: () => import('@/views/pages/tables/data.vue'),
+      },
+      {
+        path: 'tables/jsgrid',
+        name: 'old-tables-jsgrid',
+        component: () => import('@/views/pages/tables/jsgrid.vue'),
+      },
+      {
+        path: 'calendar',
+        name: 'old-calendar',
+        component: () => import('@/views/pages/calendar.vue'),
+      },
+      {
+        path: 'gallery',
+        name: 'old-gallery',
+        component: () => import('@/views/pages/gallery.vue'),
+      },
+      {
+        path: 'kanban',
+        name: 'old-kanban',
+        component: () => import('@/views/pages/kanban.vue'),
+      },
+      {
+        path: 'mailbox/inbox',
+        name: 'old-mailbox-inbox',
+        component: () => import('@/views/pages/mailbox/mailbox.vue'),
+      },
+      {
+        path: 'mailbox/compose',
+        name: 'old-mailbox-compose',
+        component: () => import('@/views/pages/mailbox/compose.vue'),
+      },
+      {
+        path: 'mailbox/read-mail',
+        name: 'old-mailbox-read-mail',
+        component: () => import('@/views/pages/mailbox/read-mail.vue'),
+      },
+      {
+        path: 'examples/invoice',
+        name: 'old-examples-invoice',
+        component: () => import('@/views/pages/examples/invoice.vue'),
+      },
+      {
+        path: 'examples/profile',
+        name: 'old-examples-profile',
+        component: () => import('@/views/pages/examples/profile.vue'),
+      },
+      {
+        path: 'examples/e-commerce',
+        name: 'old-examples-e-commerce',
+        component: () => import('@/views/pages/examples/e-commerce.vue'),
+      },
+      {
+        path: 'examples/projects',
+        name: 'old-examples-projects',
+        component: () => import('@/views/pages/examples/projects.vue'),
+      },
+      {
+        path: 'examples/project-add',
+        name: 'old-examples-project-add',
+        component: () => import('@/views/pages/examples/project-add.vue'),
+      },
+      {
+        path: 'examples/project-edit',
+        name: 'old-examples-project-edit',
+        component: () => import('@/views/pages/examples/project-edit.vue'),
+      },
+      {
+        path: 'examples/project-detail',
+        name: 'old-examples-project-detail',
+        component: () => import('@/views/pages/examples/project-detail.vue'),
+      },
+      {
+        path: 'examples/contacts',
+        name: 'old-examples-contacts',
+        component: () => import('@/views/pages/examples/contacts.vue'),
+      },
+      {
+        path: 'examples/faq',
+        name: 'old-examples-faq',
+        component: () => import('@/views/pages/examples/faq.vue'),
+      },
+      {
+        path: 'examples/contact-us',
+        name: 'old-examples-contact-us',
+        component: () => import('@/views/pages/examples/contact-us.vue'),
+      },
+      {
+        path: 'examples/legacy-user-menu',
+        name: 'old-legacy-user-menu',
         component: () => import('@/views/pages/examples/legacy-user-menu.vue'),
       },
       {
-        path: '/examples/language-menu',
-        name: 'language-menu',
+        path: 'examples/language-menu',
+        name: 'old-language-menu',
         component: () => import('@/views/pages/examples/language-menu.vue'),
       },
       {
-        path: '/examples/404',
-        name: '404',
+        path: 'examples/404',
+        name: 'old-404',
         component: () => import('@/views/pages/examples/404.vue'),
       },
-        {
-        path: '/examples/500',
-        name: '500',
+      {
+        path: 'examples/500',
+        name: 'old-500',
         component: () => import('@/views/pages/examples/500.vue'),
       },
-        {
-        path: '/examples/pace',
-        name: 'pace',
+      {
+        path: 'examples/pace',
+        name: 'old-pace',
         component: () => import('@/views/pages/examples/pace.vue'),
       },
-        {
-        path: '/examples/blank',
-        name: 'blank',
+      {
+        path: 'examples/blank',
+        name: 'old-blank',
         component: () => import('@/views/pages/examples/blank.vue'),
       },
-        {
-        path: '/examples/starter',
-        name: 'starter',
+      {
+        path: 'examples/starter',
+        name: 'old-starter',
         component: () => import('@/views/pages/examples/starter.vue'),
       },
-       {
-        path: '/search/simple',
-        name: 'simple',
+      {
+        path: 'search/simple',
+        name: 'old-simple',
         component: () => import('@/views/pages/search/simple.vue'),
       },
       {
-        path: '/search/enhanced',
-        name: 'enhanced',
+        path: 'search/enhanced',
+        name: 'old-enhanced',
         component: () => import('@/views/pages/search/enhanced.vue'),
       },
       {
-        path: '/examples/iframe',
-        name: 'iframe',
+        path: 'examples/iframe',
+        name: 'old-iframe',
         component: () => import('@/views/pages/examples/iframe.vue'),
       },
-      ]
-     },
+    ]
+  },
 
-  // Auth routes
+  // ========================================
+  // 3. REDIRECT for backward compatibility
+  // ========================================
+  {
+    path: '/dashboard',
+    redirect: '/old'
+  },
+  {
+    path: '/dashboardV2',
+    redirect: '/old/dashboardV2'
+  },
+  {
+    path: '/dashChart',
+    redirect: '/old/dashChart'
+  },
 
-       {
-    path: '/login',
+  // ========================================
+  // 4. NEW SYSTEM - Redirect to external
+  // ========================================
+  {
+    path: '/new-system',
+    name: 'new-system',
+    beforeEnter: (to, from, next) => {
+      const newSystemUrl = import.meta.env.VITE_NEW_SYSTEM_URL || 'https://sistem-baru-anda.com'
+      window.location.href = newSystemUrl
+    }
+  },
+
+  // ========================================
+  // 5. AUTH ROUTES
+  // ========================================
+  {
+    path: '/auth',
     component: AuthLayout,
     children: [
       {
-        path: '/examples/login',
+        path: 'login',
         name: 'login',
         component: Login
       },
       {
-        path: '/examples/register',
+        path: 'register',
         name: 'register',
         component: () => import('@/views/pages/examples/register.vue')
       },
       {
-        path: '/examples/forgot-password',
+        path: 'forgot-password',
         name: 'forgot-password',
         component: () => import('@/views/pages/examples/forgot-password.vue')
       },
       {
-        path: '/examples/recover-password',
+        path: 'recover-password',
         name: 'recover-password',
         component: () => import('@/views/pages/examples/recover-password.vue')
       },
       {
-        path: '/examples/forgot-password',
-        name: 'forgot-password',
-        component: () => import('@/views/pages/examples/forgot-password.vue')
-      },
-      {
-        path: '/examples/login-v2',
+        path: 'login-v2',
         name: 'login-v2',
         component: () => import('@/views/pages/examples/login-v2.vue')
       },
       {
-        path: '/examples/register-v2',
+        path: 'register-v2',
         name: 'register-v2',
         component: () => import('@/views/pages/examples/register-v2.vue')
       },
       {
-        path: '/examples/forgot-password-v2',
+        path: 'forgot-password-v2',
         name: 'forgot-password-v2',
         component: () => import('@/views/pages/examples/forgot-password-v2.vue')
       },
       {
-        path: '/examples/recover-password-v2',
+        path: 'recover-password-v2',
         name: 'recover-password-v2',
         component: () => import('@/views/pages/examples/recover-password-v2.vue')
       },
       {
-        path: '/examples/lockscreen',
+        path: 'lockscreen',
         name: 'lockscreen',
         component: () => import('@/views/pages/examples/lockscreen.vue')
       },
     ]
   },
-  ],
+
+  // ========================================
+  // 6. 404 CATCH ALL
+  // ========================================
+  {
+    path: '/:pathMatch(.*)*',
+    redirect: '/'
+  }
+]
+
+const router = createRouter({
+  history: createWebHistory(import.meta.env.BASE_URL),
+  routes
 })
 
-// Navigation Guard untuk proteksi route
+// ============================================
+// NAVIGATION GUARD
+// ============================================
 router.beforeEach((to, from, next) => {
+  // Set page title
+  const title = to.meta.title || 'Engineering System'
+  document.title = title
+
+  // If SYSTEM_MODE is 'old' and accessing root, redirect to old system
+  if (SYSTEM_MODE === 'old' && to.path === '/') {
+    next('/old')
+    return
+  }
+
+  // Skip auth checks for auth routes and landing page
+  if (to.path.startsWith('/auth') || to.path === '/' || to.name === 'system-migration') {
+    next()
+    return
+  }
+
+  const Swal = window.Swal || window.SweetAlert2
   const isLoggedIn = !!userStore.state.user
   const permissions = userStore.state.permissions || []
 
-  // Cek jika route membutuhkan permission spesifik
+  // Helper untuk show alert
+  const showAlert = (message) => {
+    if (Swal) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Akses Ditolak',
+        text: message
+      })
+    } else {
+      console.warn('Akses Ditolak:', message)
+    }
+  }
+
+  // Check permission
   if (isLoggedIn && to.meta.requiresPermission) {
     const hasPermission = permissions.includes(to.meta.requiresPermission)
     if (!hasPermission) {
-      Swal.fire({
-        icon: 'error',
-        title: 'Akses Ditolak',
-        text: 'Anda tidak memiliki izin untuk mengakses halaman ini'
-      })
-      next('/dashChart') // Redirect ke dashboard
+      showAlert('Anda tidak memiliki izin untuk mengakses halaman ini')
+      next({ path: '/old/dashChart' })
       return
     }
   }
 
-  // Cek jika route membutuhkan role admin (fallback jika tidak ada custom permissions)
+  // Check admin role
   if (to.meta.requiresAdmin && isLoggedIn) {
-    // Jika ada custom permissions, cek permission 'user:view'
     if (permissions.length > 0) {
       if (!permissions.includes('user:view')) {
-        Swal.fire({
-          icon: 'error',
-          title: 'Akses Ditolak',
-          text: 'Anda tidak memiliki izin untuk mengakses halaman ini'
-        })
-        next('/dashChart')
+        showAlert('Anda tidak memiliki izin untuk mengakses halaman ini')
+        next({ path: '/old/dashChart' })
         return
       }
     } else if (userStore.state.user?.role !== 'admin') {
-      // Fallback ke role-based check
-      Swal.fire({
-        icon: 'error',
-        title: 'Akses Ditolak',
-        text: 'Anda tidak memiliki izin untuk mengakses halaman ini'
-      })
-      next('/dashChart')
+      showAlert('Anda tidak memiliki izin untuk mengakses halaman ini')
+      next({ path: '/old/dashChart' })
       return
     }
   }
 
-  // Cek jika route membutuhkan superadmin
+  // Check superadmin role
   if (to.meta.requiresSuperadmin && isLoggedIn) {
     const user = userStore.state.user
-    // Check role = 'superadmin' OR email starts with 'super@'
     const isSuperadmin = user && (
       (user.role && user.role.toLowerCase() === 'superadmin') ||
       (user.email && user.email.toLowerCase().startsWith('super@'))
     )
-    
+
     if (!isSuperadmin) {
-      Swal.fire({
-        icon: 'error',
-        title: 'Akses Ditolak',
-        text: 'Halaman ini hanya dapat diakses oleh Super Admin'
-      })
-      next('/dashChart')
+      showAlert('Halaman ini hanya dapat diakses oleh Super Admin')
+      next({ path: '/old/dashChart' })
       return
     }
   }
@@ -460,4 +543,5 @@ router.beforeEach((to, from, next) => {
   next()
 })
 
+export { SYSTEM_MODE, generateUrl }
 export default router

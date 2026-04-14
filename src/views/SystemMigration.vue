@@ -51,7 +51,7 @@
         <div class="notice-content">
           <h4>Pemberitahuan Penting</h4>
           <p>
-            Sistem atau Url yang lama akan <strong>dihentikan penggunaannya</strong> dan telah digantikan dengan sistem yang lebih optimal dan cepat. 
+            Sistem atau Url yang lama akan <strong>dihentikan...</strong> dan telah digantikan dengan sistem yang lebih optimal dan cepat. 
             Silakan akses sistem baru melalui tautan di bawah ini untuk melanjutkan aktivitas Anda.
           </p>
         </div>

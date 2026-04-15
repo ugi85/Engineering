@@ -478,7 +478,8 @@ router.beforeEach((to, from, next) => {
   }
 
   // Skip auth checks for auth routes and landing page
-  if (to.path.startsWith('/auth') || to.path === '/' || to.name === 'system-migration') {
+  // Also skip for routes under /old path (old system routes)
+  if (to.path.startsWith('/auth') || to.path === '/' || to.name === 'system-migration' || to.path.startsWith('/old')) {
     next()
     return
   }

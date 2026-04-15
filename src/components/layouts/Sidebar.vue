@@ -1,11 +1,17 @@
 <script setup>
-import { ref, watch, onMounted, computed, onUnmounted } from 'vue'
+import { ref, watch, onMounted, computed, onUnmounted, nextTick } from 'vue'
 import { usePermissions } from '@/composables/usePermissions'
 
 const permission = usePermissions()
 
 // Key untuk force re-render saat permission berubah
 const renderKey = ref(0)
+
+// State untuk menu toggle (menggantikan AdminLTE jQuery treeview)
+const openMenus = ref({
+  logAktivitas: false,
+  settings: false
+})
 
 // System name from config
 const systemName = ref('EEHS Dashboard')
@@ -36,6 +42,11 @@ const isSuperAdmin = computed(() => {
     (user.email && user.email.toLowerCase().startsWith('super@'))
   )
 })
+
+// Toggle menu function (menggantikan AdminLTE jQuery treeview)
+const toggleMenu = (menuName) => {
+  openMenus.value[menuName] = !openMenus.value[menuName]
+}
 
 // Force refresh sidebar saat permission berubah
 const handlePermissionChange = () => {
@@ -86,10 +97,10 @@ const loadConfig = () => {
 // Load config on mount
 onMounted(() => {
   loadConfig()
-  
+
   // Listen untuk permission changes
   window.addEventListener('permissions-changed', handlePermissionChange)
-  
+
   console.log('[Sidebar] Mounted - watching for permission changes')
 })
 
@@ -111,10 +122,28 @@ const handleLogout = () => {
 }
 </script>
 
+<style scoped>
+/* Animasi rotate untuk arrow menu */
+.rotate-angle {
+  transform: rotate(-90deg);
+  transition: transform 0.3s ease;
+}
+
+/* Ensure menu-open shows the submenu */
+.menu-open > .nav-treeview {
+  display: block;
+}
+
+/* Smooth transition for submenu */
+.nav-treeview {
+  transition: all 0.3s ease;
+}
+</style>
+
 <template>
   <aside class="main-sidebar sidebar-dark-primary elevation-4">
     <!-- Brand Logo -->
-    <RouterLink to="/dashChart" class="brand-link">
+      <RouterLink to="/old/dashChart" class="brand-link">
       <img
         :key="logoKey"
         :src="logoUrl"
@@ -135,7 +164,7 @@ const handleLogout = () => {
             <ul class="nav nav-treeview">
               <!-- Dashboard - Selalu tampil untuk semua orang -->
               <li class="nav-item">
-                <RouterLink to="/dashChart" class="nav-link">
+                <RouterLink to="/old/dashChart" class="nav-link">
                   <i class="fas fa-tachometer-alt nav-icon"></i>
                   <p>Dashboard Chart</p>
                 </RouterLink>
@@ -143,19 +172,19 @@ const handleLogout = () => {
 
               <!-- Menu di bawah ini tampil untuk semua (public + login) -->
               <li class="nav-item" v-if="canViewUsers" :key="'users-' + renderKey">
-                <RouterLink to="/user" class="nav-link">
+                <RouterLink to="/old/user" class="nav-link">
                   <i class="fas fa-users nav-icon"></i>
                   <p>Data Users</p>
                 </RouterLink>
               </li>
               <li class="nav-item" v-if="canViewDaftarAlat" :key="'daftarAlat-' + renderKey">
-                <RouterLink to="/daftarAlat" class="nav-link">
+                <RouterLink to="/old/daftarAlat" class="nav-link">
                   <i class="fas fa-tools nav-icon"></i>
                   <p>Daftar Alat</p>
                 </RouterLink>
               </li>
               <li class="nav-item" v-if="canViewJadwalKalibrasi" :key="'jadwalKalibrasi-' + renderKey">
-                <RouterLink to="/jadwalKalibrasi" class="nav-link">
+                <RouterLink to="/old/jadwalKalibrasi" class="nav-link">
                   <i class="fas fa-balance-scale nav-icon"></i>
                   <p>Jadwal Kalibrasi</p>
                 </RouterLink>
@@ -164,29 +193,29 @@ const handleLogout = () => {
           </li>
 
           <!-- Log Aktifitas - Tampil untuk semua (public + login) -->
-          <li class="nav-item" v-if="canViewLogAktivitas" :key="'logAktivitas-' + renderKey">
-            <a href="#" class="nav-link">
+          <li class="nav-item" v-if="canViewLogAktivitas" :key="'logAktivitas-' + renderKey" :class="{ 'menu-open': openMenus.logAktivitas }">
+            <a href="#" class="nav-link" @click.prevent="toggleMenu('logAktivitas')">
               <i class="nav-icon fas fa-edit"></i>
               <p>
                 Log Aktifitas
-                <i class="fas fa-angle-left right"></i>
+                <i class="fas fa-angle-left right" :class="{ 'rotate-angle': openMenus.logAktivitas }"></i>
               </p>
             </a>
             <ul class="nav nav-treeview">
               <li class="nav-item">
-                <RouterLink to="/logCal" class="nav-link">
+                <RouterLink to="/old/logCal" class="nav-link">
                   <i class="far fa-circle nav-icon"></i>
                   <p>Log Kalibrasi</p>
                 </RouterLink>
               </li>
               <li class="nav-item">
-                <RouterLink to="/logPm" class="nav-link">
+                <RouterLink to="/old/logPm" class="nav-link">
                   <i class="far fa-circle nav-icon"></i>
                   <p>Log PM</p>
                 </RouterLink>
               </li>
               <li class="nav-item" v-if="isLoggedIn">
-                <RouterLink to="/allAktivitas" class="nav-link">
+                <RouterLink to="/old/allAktivitas" class="nav-link">
                   <i class="far fa-circle nav-icon"></i>
                   <p>All Aktivitas</p>
                 </RouterLink>
@@ -195,23 +224,23 @@ const handleLogout = () => {
           </li>
 
           <!-- Settings - Hanya untuk LOGIN -->
-          <li class="nav-item" v-if="isLoggedIn && canViewConfig" :key="'settings-' + renderKey">
-            <a href="#" class="nav-link">
+          <li class="nav-item" v-if="isLoggedIn && canViewConfig" :key="'settings-' + renderKey" :class="{ 'menu-open': openMenus.settings }">
+            <a href="#" class="nav-link" @click.prevent="toggleMenu('settings')">
               <i class="fas fa-cogs nav-icon"></i>
               <p>
                 Settings
-                <i class="right fas fa-angle-left"></i>
+                <i class="right fas fa-angle-left" :class="{ 'rotate-angle': openMenus.settings }"></i>
               </p>
             </a>
             <ul class="nav nav-treeview">
               <li class="nav-item" v-if="canViewConfig" :key="'configurasi-' + renderKey">
-                <RouterLink to="/configurasi" class="nav-link">
+                <RouterLink to="/old/configurasi" class="nav-link">
                   <i class="far fa-circle nav-icon"></i>
                   <p>Konfigurasi Sistem</p>
                 </RouterLink>
               </li>
               <li class="nav-item" v-if="isSuperAdmin" :key="'roles-' + renderKey">
-                <RouterLink to="/roles" class="nav-link">
+                <RouterLink to="/old/roles" class="nav-link">
                   <i class="far fa-circle nav-icon"></i>
                   <p>Roles & Permissions</p>
                 </RouterLink>

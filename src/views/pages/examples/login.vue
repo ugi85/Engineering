@@ -44,8 +44,8 @@ const handleLogin = async () => {
         showConfirmButton: false
       })
 
-      // Redirect ke dashboard
-      router.push('/')
+      // Redirect ke old system dashboard
+      router.push('/old/dashChart')
     } else {
       error.value = result.message || 'Email atau password salah'
       Swal.fire('Error!', error.value, 'error')
